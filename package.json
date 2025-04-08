@@ -1,0 +1,31 @@
+{
+  "name": "@machhub-dev/sdk-ts",
+  "version": "0.0.1",
+  "description": "MACHHUB SDK",
+  "keywords": [
+    "machhub",
+    "intellogic technology"
+  ],
+  "license": "MIT",
+  "author": "Intellogic Technology Sdn Bhd",
+  "types": "types/types.d.ts",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "exports": {
+    "import": "./dist/index.js",
+    "require": "./dist/index.cjs"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "npx tsc && npx tsc --module CommonJS --outDir dist/cjs"
+  },
+  "dependencies": {
+    "mqtt": "^5.10.4",
+    "safe-buffer": "^5.2.1",
+    "typescript": "^5.7.3",
+    "undici-types": "^7.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5"
+  }
+}
