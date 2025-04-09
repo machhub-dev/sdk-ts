@@ -11,17 +11,19 @@ export class MQTTService {
     private static instance: MQTTService | undefined;
     private subscribedTopics: SubscribedTopic[] = [];
 
-    constructor( url: string) {
-        this.url = url
+    constructor(url: string) {
+        this.url = url;
     }
 
-    static async getInstance(): Promise<MQTTService> {
+    static async getInstance(url: string = "ws://localhost:180"): Promise<MQTTService> {
         if (!this.instance || !this.instance.client) {
-            this.instance = new MQTTService(this.instance.url);
+            this.instance = new MQTTService(url);
 
-            this.instance.url = `mqtt://${this.instance.url}`;
+            // Ensure the URL is set correctly
+            this.instance.url = url;
 
-            this.instance.client = await mqtt.connectAsync(this.instance.url, { protocolVersion: 5 });
+            // Initialize the MQTT client
+            this.instance.client = mqtt.connect(this.instance.url, { protocolVersion: 5 });
             this.instance.attachMessageListener();
         }
         return this.instance;
@@ -38,9 +40,9 @@ export class MQTTService {
     // addTopicHandler Adds a topic and handler to the subscribed list
     public addTopicHandler(topic: string, handler: (message: unknown) => void): void {
         try {
-            this.subscribedTopics = []
+            this.subscribedTopics = [];
             this.subscribedTopics.push({ topic, handler });
-            if (topic == "") return 
+            if (topic == "") return;
             console.log("New Subscription Handler:", topic);
             this.client.subscribe(topic, { qos: 2 }, (err?: unknown) => {
                 if (err) {
@@ -54,7 +56,7 @@ export class MQTTService {
 
     // clearTopics clears all the topics subscribed to
     public clearTopics(): void {
-        this.subscribedTopics = []
+        this.subscribedTopics = [];
     }
 
     // Publishes a message to a specific topic
