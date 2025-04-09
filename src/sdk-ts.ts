@@ -1,9 +1,10 @@
 import { HistorizedData } from "./types/tag.models";
 import { HTTPService } from "./services/http.service";
 import { MQTTService } from "./services/mqtt.service";
+import { NATSService } from "./services/nats.service";
 import { getAppConfig } from "./utils/appConfig";
 
-let nats_broker_url = "nats://localhost:4222";
+const MACHHUB_SDK_PATH = "machhub";
 
 // Core HTTP client class
 export class HTTPClient {
@@ -11,23 +12,23 @@ export class HTTPClient {
 
   /**
    * Creates a new HTTPClient instance
-   * @param applicationID The ID for your application (optional, will be read from environment variable APP_ID if not provided)
+   * @param applicationID The ID for your application (required)
    * @param httpUrl The base URL for HTTP connection (default = http://localhost:80)
    */
-  constructor(applicationID?: string, httpUrl: string = "http://localhost:80") {
+  constructor(applicationID: string, httpUrl: string = "http://localhost:80") {
     if (!applicationID) {
       const config = getAppConfig()
       console.log("config", config)
-      if (config != undefined){
-        applicationID = config.application_id
-      }else{
+      if (config != undefined) {
+        applicationID = config.application_id;
+      } else {
         throw new Error("Failed to get Configuration.");
       }
       if (!applicationID) {
         throw new Error("Application ID is required. Set it via the APP_ID environment variable or pass it as a parameter.");
       }
     }
-    this.httpService = new HTTPService(httpUrl, "machhub", applicationID);
+    this.httpService = new HTTPService(httpUrl, MACHHUB_SDK_PATH, applicationID);
   }
 
   /**
@@ -36,40 +37,34 @@ export class HTTPClient {
   async getInfo(): Promise<any> {
     return this.httpService.request.get("info");
   }
-
-  /**
-   * Creates a collection instance to interact with the specified table/collection
-   * @param collectionName The collection/table name
-   */
-  collection(collectionName: string): Collection {
-    return new Collection(this.httpService, null, collectionName);
-  }
-
-  /**
-   * Access to the historian collection
-   */
-  get historian(): Historian {
-    return new Historian(this.httpService, null);
-  }
 }
 
 // Core MQTT client class
 export class MQTTClient {
   private mqttService: MQTTService;
+  private static instance: MQTTClient | undefined;
+
+  private constructor(mqttService: MQTTService) {
+    this.mqttService = mqttService;
+  }
 
   /**
    * Creates a new MQTTClient instance
-   * @param applicationID The ID for your application (optional, will be read from environment variable APP_ID if not provided)
-   * @param mqttUrl The base URL for MQTT connection (default = mqtt://localhost:180)
+   * @param applicationID The ID for your application
+   * @param mqttUrl The base URL for MQTT connection (default = ws://localhost:180)
    */
-  constructor(applicationID?: string, mqttUrl: string = "mqtt://localhost:180") {
-    if (!applicationID) {
-      applicationID = process.env.APP_ID;
-      if (!applicationID) {
-        throw new Error("Application ID is required. Set it via the APP_ID environment variable or pass it as a parameter.");
-      }
+  static async getInstance(applicationID?: string, mqttUrl: string = "ws://localhost:180"): Promise<MQTTClient> {
+    // if (!applicationID) {
+    //   applicationID = process.env.APP_ID;
+    //   if (!applicationID) {
+    //     throw new Error("Application ID is required. Set it via the APP_ID environment variable or pass it as a parameter.");
+    //   }
+    // }
+    if (!this.instance) {
+      const mqttService = await MQTTService.getInstance(mqttUrl);
+      this.instance = new MQTTClient(mqttService); // Use the constructor to initialize the instance
     }
-    this.mqttService = new MQTTService(mqttUrl);
+    return this.instance;
   }
 
   /**
@@ -79,6 +74,76 @@ export class MQTTClient {
    */
   async subscribeLiveData(topic: string, callback: (data: any) => void): Promise<any> {
     return this.mqttService.addTopicHandler(topic, callback);
+  }
+
+  /**
+   * Publishes a message to a specific topic
+   * @param topic The topic to publish to
+   * @param data The data to publish
+   */
+  async publish(topic: string, data: any): Promise<any> {
+    return this.mqttService.publish(topic, data);
+  }
+}
+
+export class NATSClient {
+  private natsService: NATSService;
+  private static instance: NATSClient | undefined;
+
+  private constructor(natsService: NATSService) {
+    this.natsService = natsService;
+  }
+
+  /**
+   * Creates a new NATSClient instance
+   * @param applicationID The ID for your application
+   * @param natsUrl The base URL for NATS connection (default = nats://localhost:4222)
+   */
+  static async getInstance(applicationID?: string, natsUrl: string = "nats://localhost:4222"): Promise<NATSClient> {
+    if (!this.instance) {
+      const natsService = await NATSService.getInstance(natsUrl);
+      this.instance = new NATSClient(natsService);
+    }
+    return this.instance;
+  }
+
+  /**
+   * Subscribes to subject updates
+   * @param subject The subject to subscribe to
+   * @param callback The callback function for data updates
+   */
+  async subscribe(subject: string, callback: (data: any) => void): Promise<any> {
+    return this.natsService.addSubjectHandler(subject, callback);
+  }
+
+  /**
+   * Publishes a message to a specific subject
+   * @param subject The subject to publish to
+   * @param data The data to publish
+   */
+  async publish(subject: string, data: any): Promise<any> {
+    return this.natsService.publish(subject, data);
+  }
+
+  /**
+   * Adds a new function to the registry
+   * @param name The name of the function
+   * @param func The function implementation
+   */
+  async addFunction(name: string, func: (data: { [key: string]: any }) => { [key: string]: any }): Promise<any> {
+    return this.natsService.addFunction(name, func);
+  }
+
+  /**
+   * Subscribes to function execution
+   * Should only be called once all functions are registered
+   */
+  async subscribeToFunctionExecution(): Promise<any> {
+    return this.natsService.subscribeToFunctionExecution();
+  }
+
+  public static log(message?: any, ...optionalParams: any[]) {
+    console.log("[TYPESCRIPT] >", message, ...optionalParams);
   }
 }
 
@@ -101,7 +166,7 @@ class Collection {
    * @param operator The operator for comparison
    * @param value The value to compare against
    */
-  filter(fieldName: string, operator: string, value: any): Collection {
+  filter(fieldName: string, operator: "=" | ">" | "<" | "<=" | ">=" | "!=", value: any): Collection {
     this.queryParams[`filter[${fieldName}][${operator}]`] = value;
     return this;
   }
@@ -138,8 +203,7 @@ class Collection {
    * Fetches all matching records
    */
   async getAll(): Promise<any[]> {
-    return this.httpService.request
-      .get(this.collectionName + "/all");
+    return this.httpService.request.get(this.collectionName + "/all");
   }
 
   /**
@@ -155,9 +219,7 @@ class Collection {
    * @param data The record data
    */
   async create(data: Record<string, any>): Promise<any> {
-    return this.httpService.request
-      .withJSON(data)
-      .post(this.collectionName);
+    return this.httpService.request.withJSON(data).post(this.collectionName);
   }
 
   /**
@@ -166,9 +228,7 @@ class Collection {
    * @param data The updated data
    */
   async update(id: string, data: Record<string, any>): Promise<any> {
-    return this.httpService.request
-      .withJSON(data)
-      .put(id);
+    return this.httpService.request.withJSON(data).put(id);
   }
 
   /**
@@ -180,26 +240,31 @@ class Collection {
   }
 }
 
-// Specialized collection for tags
-class Historian extends Collection {
+// Historian class
+export class Historian {
+  private httpService: HTTPService;
+  private mqttService: MQTTService | null;
+
   constructor(httpService: HTTPService, mqttService: MQTTService | null) {
-    super(httpService, mqttService, "historian");
+    this.httpService = httpService;
+    this.mqttService = mqttService;
   }
 
-  async getAllTags(): Promise<string[]> {
+  async getAllHistorizedTags(): Promise<string[]> {
     return this.httpService.request.get("historian/list");
   }
 
   /**
    * Gets historical data for a specific tag
    * @param topic The tag topic
-   * @param startDate The start date for historical data, empty string to get all data
+   * @param start_time The start date for historical data, empty string to get all data
    */
-  // TODO : StartDate to a Date type?
-  async getHistoricalData(topic: string, startDate: string): Promise<HistorizedData[]> {
+  // TODO : StartDate to a Date type, then convert to string in the HTTPService
+  async getHistoricalData(topic: string, start_time: string, range?: string): Promise<HistorizedData[]> {
     return this.httpService.request.withJSON({
       topic: topic,
-      startDate: startDate
+      start_time: start_time,
+      range: range,
     }).patch("historian");
   }
 
@@ -212,31 +277,75 @@ class Historian extends Collection {
     if (!this.mqttService) {
       throw new Error("MQTT service not connected");
     }
-    
-    // Subscribe to the MQTT topic and set up callback
-    return this.mqttService.addTopicHandler(topic, callback);
+    this.mqttService.addTopicHandler(topic, callback);
+  }
+}
+
+// Tag class
+export class Tag {
+  private httpService: HTTPService;
+  private mqttService: MQTTService | null;
+
+  constructor(httpService: HTTPService, mqttService: MQTTService | null) {
+    this.httpService = httpService;
+    this.mqttService = mqttService;
   }
 
-  /**
-   * Gets live tag data with initial historical context
-   * @param topic The tag topic
-   * @param startDate The start date for historical context, empty string to get all data
-   */
-  // TODO : StartDate to a Date type?
-  async getLiveData(topic: string, startDate: string): Promise<any> {
-    return this.httpService.request.withJSON({
-      topic: topic,
-      startDate: startDate
-    }).get("tag");
+  async getAllTags(): Promise<string[]> {
+    return this.httpService.request.get("tag/list");
+  }
+
+  async publish(topic: string, data: any): Promise<void> {
+    if (!this.mqttService) {
+      throw new Error("MQTT service not connected");
+    }
+    this.mqttService.publish(topic, data);
+  }
+
+  async subscribe(topic: string, callback: (data: any) => void): Promise<void> {
+    if (!this.mqttService) {
+      throw new Error("MQTT service not connected");
+    }
+    this.mqttService.addTopicHandler(topic, callback);
   }
 }
 
 // Example usage
-export const SDK = {
-  HTTPClient(applicationID?: string, httpUrl?: string): HTTPClient {
-    return new HTTPClient(applicationID, httpUrl);
-  },
-  MQTTClient(applicationID?: string, mqttUrl?: string): MQTTClient {
-    return new MQTTClient(applicationID, mqttUrl);
+export class SDK {
+  private http: HTTPClient | null = null;
+  private mqtt: MQTTClient | null = null;
+  private nats: NATSClient | null = null;
+  historian : Historian | null = null;
+  tag : Tag | null = null;
+
+  /**
+   * Initializes the SDK with the required clients.
+   * @param application_id {string} The application ID.
+   * @param httpUrl {string} The base URL for HTTP connection (default = http://localhost:80)
+   * @param mqttUrl {string} The base URL for MQTT connection (default = ws://localhost:180)
+   * @param natsUrl {string} The base URL for NATS connection (default = nats://localhost:4222)
+   * @returns {Promise<boolean>} Resolves to true if initialization is successful.
+   */
+  public async Initialize(application_id: string, httpUrl?: string, mqttUrl?: string, natsUrl?: string): Promise<boolean> {
+    this.http = new HTTPClient(application_id, httpUrl);
+    this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl);
+    this.nats = await NATSClient.getInstance(application_id, natsUrl);
+    this.historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
+    this.tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
+
+    return true;
   }
-};
+
+  /**
+   * Creates a collection instance to interact with the specified table/collection.
+   * Throws an error if the SDK is not initialized.
+   * @param collectionName {string} The collection/table name.
+   * @returns {Collection} An instance of Collection.
+   */
+  public collection(collectionName: string): Collection {
+    if (!this.http) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing collection.");
+    }
+    return new Collection(this.http["httpService"], this.mqtt ? this.mqtt["mqttService"] : null, collectionName);
+  }
+}
