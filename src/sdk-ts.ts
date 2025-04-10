@@ -171,62 +171,33 @@ class Collection {
     return this;
   }
 
-  /**
-   * Sorts the results
-   * @param field The field to sort by
-   * @param direction The sort direction ("asc" or "desc")
-   */
   sort(field: string, direction: "asc" | "desc" = "asc"): Collection {
     this.queryParams.sort = direction === "asc" ? field : `-${field}`;
     return this;
   }
 
-  /**
-   * Limits the number of results
-   * @param limit Maximum number of items to return
-   */
   limit(limit: number): Collection {
     this.queryParams.limit = limit;
     return this;
   }
 
-  /**
-   * Skips the specified number of results
-   * @param offset Number of items to skip
-   */
   offset(offset: number): Collection {
     this.queryParams.offset = offset;
     return this;
   }
 
-  /**
-   * Fetches all matching records
-   */
   async getAll(): Promise<any[]> {
     return this.httpService.request.get(this.collectionName + "/all");
   }
 
-  /**
-   * Fetches a single record by ID
-   * @param id The record ID
-   */
   async getOne(id: string): Promise<any> {
     return this.httpService.request.get(id);
   }
 
-  /**
-   * Creates a new record
-   * @param data The record data
-   */
   async create(data: Record<string, any>): Promise<any> {
     return this.httpService.request.withJSON(data).post(this.collectionName);
   }
 
-  /**
-   * Updates an existing record
-   * @param id The record ID
-   * @param data The updated data
-   */
   async update(id: string, data: Record<string, any>): Promise<any> {
     return this.httpService.request.withJSON(data).put(id);
   }
@@ -254,11 +225,6 @@ export class Historian {
     return this.httpService.request.get("historian/list");
   }
 
-  /**
-   * Gets historical data for a specific tag
-   * @param topic The tag topic
-   * @param start_time The start date for historical data, empty string to get all data
-   */
   // TODO : StartDate to a Date type, then convert to string in the HTTPService
   async getHistoricalData(topic: string, start_time: string, range?: string): Promise<HistorizedData[]> {
     return this.httpService.request.withJSON({
@@ -310,13 +276,45 @@ export class Tag {
   }
 }
 
-// Example usage
+export class Function{
+  private httpService: HTTPService;
+
+  constructor(httpService:HTTPService){
+    this.httpService = httpService
+  }
+
+  public async executeFunction(function_type:string,function_name:string,payload:any): Promise<any>{
+    return await this.httpService.request.withJSON({
+      function_type: function_type,
+      function_name:function_name,
+      payload:payload
+    }).post('function/execute')
+  }
+}
+
+export class Flow{
+  private httpService: HTTPService;
+
+  constructor(httpService:HTTPService){
+    this.httpService = httpService
+  }
+
+  public async executeFlow(flow_id:string, payload:any):Promise<any>{
+    let res = await this.httpService.request.withJSON(payload).post('flow/execute/' + flow_id)
+    return res
+  }
+}
+
+
+// SDK Class
 export class SDK {
   private http: HTTPClient | null = null;
   private mqtt: MQTTClient | null = null;
   private nats: NATSClient | null = null;
   historian : Historian | null = null;
   tag : Tag | null = null;
+  function : Function | null = null;
+  flow : Flow | null = null;
 
   /**
    * Initializes the SDK with the required clients.
@@ -332,6 +330,8 @@ export class SDK {
     this.nats = await NATSClient.getInstance(application_id, natsUrl);
     this.historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
     this.tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
+    this.function = new Function(this.http["httpService"])
+    this.flow = new Flow(this.http["httpService"])
 
     return true;
   }
