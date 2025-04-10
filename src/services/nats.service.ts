@@ -100,7 +100,7 @@ export class NATSService {
     /**
      * Subscribes to the EXEC_FUNCTION_SUBJECT and executes registered functions.
     */
-    public subscribeToFunctionExecution(): void {
+    public initializeFunctions(): void {
         if (!this.connection) {
             throw new Error("No active connection. Please connect to the NATS server first.");
         }

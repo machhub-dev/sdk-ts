@@ -7,7 +7,7 @@ import { getAppConfig } from "./utils/appConfig";
 const MACHHUB_SDK_PATH = "machhub";
 
 // Core HTTP client class
-export class HTTPClient {
+class HTTPClient {
   private httpService: HTTPService;
 
   /**
@@ -18,7 +18,6 @@ export class HTTPClient {
   constructor(applicationID: string, httpUrl: string = "http://localhost:80") {
     if (!applicationID) {
       const config = getAppConfig()
-      console.log("config", config)
       if (config != undefined) {
         applicationID = config.application_id;
       } else {
@@ -40,7 +39,7 @@ export class HTTPClient {
 }
 
 // Core MQTT client class
-export class MQTTClient {
+class MQTTClient {
   private mqttService: MQTTService;
   private static instance: MQTTClient | undefined;
 
@@ -86,7 +85,8 @@ export class MQTTClient {
   }
 }
 
-export class NATSClient {
+// Core NATS client class
+class NATSClient {
   private natsService: NATSService;
   private static instance: NATSClient | undefined;
 
@@ -124,30 +124,9 @@ export class NATSClient {
   async publish(subject: string, data: any): Promise<any> {
     return this.natsService.publish(subject, data);
   }
-
-  /**
-   * Adds a new function to the registry
-   * @param name The name of the function
-   * @param func The function implementation
-   */
-  async addFunction(name: string, func: (data: { [key: string]: any }) => { [key: string]: any }): Promise<any> {
-    return this.natsService.addFunction(name, func);
-  }
-
-  /**
-   * Subscribes to function execution
-   * Should only be called once all functions are registered
-   */
-  async subscribeToFunctionExecution(): Promise<any> {
-    return this.natsService.subscribeToFunctionExecution();
-  }
-
-  public static log(message?: any, ...optionalParams: any[]) {
-    console.log("[TYPESCRIPT] >", message, ...optionalParams);
-  }
 }
 
-// Base class for collections
+// Class for collections
 class Collection {
   protected httpService: HTTPService;
   protected mqttService: MQTTService | null;
@@ -202,17 +181,13 @@ class Collection {
     return this.httpService.request.withJSON(data).put(id);
   }
 
-  /**
-   * Deletes a record
-   * @param id The record ID
-   */
   async delete(id: string): Promise<void> {
     return this.httpService.request.delete(id);
   }
 }
 
 // Historian class
-export class Historian {
+class Historian {
   private httpService: HTTPService;
   private mqttService: MQTTService | null;
 
@@ -248,7 +223,7 @@ export class Historian {
 }
 
 // Tag class
-export class Tag {
+class Tag {
   private httpService: HTTPService;
   private mqttService: MQTTService | null;
 
@@ -276,11 +251,13 @@ export class Tag {
   }
 }
 
-export class Function{
+class Function{
   private httpService: HTTPService;
+  private natsService: NATSService | null;
 
-  constructor(httpService:HTTPService){
+  constructor(httpService:HTTPService, natsService:NATSService){
     this.httpService = httpService
+    this.natsService = natsService
   }
 
   public async executeFunction(function_type:string,function_name:string,payload:any): Promise<any>{
@@ -290,9 +267,23 @@ export class Function{
       payload:payload
     }).post('function/execute')
   }
+
+  public async addFunction(name: string, func: (data: { [key: string]: any }) => { [key: string]: any }): Promise<any> {
+    if (!this.natsService) {
+      throw new Error("NATS service not connected");
+    }
+    return this.natsService.addFunction(name, func);
+  }
+
+  public async initializeFunctions(): Promise<any> {
+    if (!this.natsService) {
+      throw new Error("NATS service not connected");
+    }
+    return this.natsService.initializeFunctions();
+  }
 }
 
-export class Flow{
+class Flow{
   private httpService: HTTPService;
 
   constructor(httpService:HTTPService){
@@ -330,7 +321,7 @@ export class SDK {
     this.nats = await NATSClient.getInstance(application_id, natsUrl);
     this.historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
     this.tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
-    this.function = new Function(this.http["httpService"])
+    this.function = new Function(this.http["httpService"], this.nats["natsService"])
     this.flow = new Flow(this.http["httpService"])
 
     return true;
