@@ -3,6 +3,13 @@ import { HTTPService } from "./services/http.service";
 import { MQTTService } from "./services/mqtt.service";
 import { NATSService } from "./services/nats.service";
 import { getAppConfig } from "./utils/appConfig";
+import { LoginResponse } from "./types/auth.models";
+import { Collection } from "./classes/collection";
+import { Historian } from "./classes/historian";
+import { Tag } from "./classes/tag";
+import { Function } from "./classes/function";
+import { Flow } from "./classes/flow";
+import { Auth } from "./classes/auth";
 
 const MACHHUB_SDK_PATH = "machhub";
 
@@ -126,186 +133,16 @@ class NATSClient {
   }
 }
 
-// Class for collections
-class Collection {
-  protected httpService: HTTPService;
-  protected mqttService: MQTTService | null;
-  protected collectionName: string;
-  protected queryParams: Record<string, any> = {};
-
-  constructor(httpService: HTTPService, mqttService: MQTTService | null, collectionName: string) {
-    this.httpService = httpService;
-    this.mqttService = mqttService;
-    this.collectionName = collectionName;
-  }
-
-  /**
-   * Applies filter conditions to the query
-   * @param fieldName The field to filter on
-   * @param operator The operator for comparison
-   * @param value The value to compare against
-   */
-  filter(fieldName: string, operator: "=" | ">" | "<" | "<=" | ">=" | "!=", value: any): Collection {
-    this.queryParams[`filter[${fieldName}][${operator}]`] = value;
-    return this;
-  }
-
-  sort(field: string, direction: "asc" | "desc" = "asc"): Collection {
-    this.queryParams.sort = direction === "asc" ? field : `-${field}`;
-    return this;
-  }
-
-  limit(limit: number): Collection {
-    this.queryParams.limit = limit;
-    return this;
-  }
-
-  offset(offset: number): Collection {
-    this.queryParams.offset = offset;
-    return this;
-  }
-
-  async getAll(): Promise<any[]> {
-    return this.httpService.request.get(this.collectionName + "/all");
-  }
-
-  async getOne(id: string): Promise<any> {
-    return this.httpService.request.get(id);
-  }
-
-  async create(data: Record<string, any>): Promise<any> {
-    return this.httpService.request.withJSON(data).post(this.collectionName);
-  }
-
-  async update(id: string, data: Record<string, any>): Promise<any> {
-    return this.httpService.request.withJSON(data).put(id);
-  }
-
-  async delete(id: string): Promise<void> {
-    return this.httpService.request.delete(id);
-  }
-}
-
-// Historian class
-class Historian {
-  private httpService: HTTPService;
-  private mqttService: MQTTService | null;
-
-  constructor(httpService: HTTPService, mqttService: MQTTService | null) {
-    this.httpService = httpService;
-    this.mqttService = mqttService;
-  }
-
-  async getAllHistorizedTags(): Promise<string[]> {
-    return this.httpService.request.get("historian/list");
-  }
-
-  // TODO : StartDate to a Date type, then convert to string in the HTTPService
-  async getHistoricalData(topic: string, start_time: string, range?: string): Promise<HistorizedData[]> {
-    return this.httpService.request.withJSON({
-      topic: topic,
-      start_time: start_time,
-      range: range,
-    }).patch("historian");
-  }
-
-  /**
-   * Subscribes to live tag data updates
-   * @param topic The tag topic
-   * @param callback The callback function for data updates
-   */
-  async subscribeLiveData(topic: string, callback: (data: any) => void): Promise<any> {
-    if (!this.mqttService) {
-      throw new Error("MQTT service not connected");
-    }
-    this.mqttService.addTopicHandler(topic, callback);
-  }
-}
-
-// Tag class
-class Tag {
-  private httpService: HTTPService;
-  private mqttService: MQTTService | null;
-
-  constructor(httpService: HTTPService, mqttService: MQTTService | null) {
-    this.httpService = httpService;
-    this.mqttService = mqttService;
-  }
-
-  async getAllTags(): Promise<string[]> {
-    return this.httpService.request.get("tag/list");
-  }
-
-  async publish(topic: string, data: any): Promise<void> {
-    if (!this.mqttService) {
-      throw new Error("MQTT service not connected");
-    }
-    this.mqttService.publish(topic, data);
-  }
-
-  async subscribe(topic: string, callback: (data: any) => void): Promise<void> {
-    if (!this.mqttService) {
-      throw new Error("MQTT service not connected");
-    }
-    this.mqttService.addTopicHandler(topic, callback);
-  }
-}
-
-class Function{
-  private httpService: HTTPService;
-  private natsService: NATSService | null;
-
-  constructor(httpService:HTTPService, natsService:NATSService){
-    this.httpService = httpService
-    this.natsService = natsService
-  }
-
-  public async executeFunction(function_type:string,function_name:string,payload:any): Promise<any>{
-    return await this.httpService.request.withJSON({
-      function_type: function_type,
-      function_name:function_name,
-      payload:payload
-    }).post('function/execute')
-  }
-
-  public async addFunction(name: string, func: (data: { [key: string]: any }) => { [key: string]: any }): Promise<any> {
-    if (!this.natsService) {
-      throw new Error("NATS service not connected");
-    }
-    return this.natsService.addFunction(name, func);
-  }
-
-  public async initializeFunctions(): Promise<any> {
-    if (!this.natsService) {
-      throw new Error("NATS service not connected");
-    }
-    return this.natsService.initializeFunctions();
-  }
-}
-
-class Flow{
-  private httpService: HTTPService;
-
-  constructor(httpService:HTTPService){
-    this.httpService = httpService
-  }
-
-  public async executeFlow(flow_id:string, payload:any):Promise<any>{
-    let res = await this.httpService.request.withJSON(payload).post('flow/execute/' + flow_id)
-    return res
-  }
-}
-
-
 // SDK Class
 export class SDK {
   private http: HTTPClient | null = null;
   private mqtt: MQTTClient | null = null;
   private nats: NATSClient | null = null;
-  historian : Historian | null = null;
-  tag : Tag | null = null;
-  function : Function | null = null;
-  flow : Flow | null = null;
+  historian: Historian | null = null;
+  tag: Tag | null = null;
+  function: Function | null = null;
+  flow: Flow | null = null;
+  auth: Auth | null = null;
 
   /**
    * Initializes the SDK with the required clients.
@@ -316,13 +153,19 @@ export class SDK {
    * @returns {Promise<boolean>} Resolves to true if initialization is successful.
    */
   public async Initialize(application_id: string, httpUrl?: string, mqttUrl?: string, natsUrl?: string): Promise<boolean> {
-    this.http = new HTTPClient(application_id, httpUrl);
-    this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl);
-    this.nats = await NATSClient.getInstance(application_id, natsUrl);
-    this.historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
-    this.tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
-    this.function = new Function(this.http["httpService"], this.nats["natsService"])
-    this.flow = new Flow(this.http["httpService"])
+    try {
+      this.http = new HTTPClient(application_id, httpUrl);
+      this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl);
+      this.nats = await NATSClient.getInstance(application_id, natsUrl);
+      this.historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
+      this.tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
+      this.function = new Function(this.http["httpService"], this.nats["natsService"])
+      this.flow = new Flow(this.http["httpService"])
+      this.auth = new Auth(this.http["httpService"])
+    } catch (error: any) {
+      console.log("Failed to initialize :", error)
+      return false
+    }
 
     return true;
   }
