@@ -1,9 +1,7 @@
-import { HistorizedData } from "./types/tag.models";
 import { HTTPService } from "./services/http.service";
 import { MQTTService } from "./services/mqtt.service";
 import { NATSService } from "./services/nats.service";
 import { getAppConfig } from "./utils/appConfig";
-import { LoginResponse } from "./types/auth.models";
 import { Collection } from "./classes/collection";
 import { Historian } from "./classes/historian";
 import { Tag } from "./classes/tag";

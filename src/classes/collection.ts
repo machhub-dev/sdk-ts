@@ -14,12 +14,12 @@ export class Collection {
   }
 
   filter(fieldName: string, operator: "=" | ">" | "<" | "<=" | ">=" | "!=", value: any): Collection {
-    this.queryParams[`filter[${fieldName}][${operator}]`] = value;
+    this.queryParams.filter = `[${fieldName}][${operator}][${value}][${typeof value}]`;
     return this;
   }
 
   sort(field: string, direction: "asc" | "desc" = "asc"): Collection {
-    this.queryParams.sort = direction === "asc" ? field : `-${field}`;
+    this.queryParams.sort = `[${field}][${direction}]`;
     return this;
   }
 
@@ -34,7 +34,7 @@ export class Collection {
   }
 
   async getAll(): Promise<any[]> {
-    return this.httpService.request.get(this.collectionName + "/all");
+    return this.httpService.request.get(this.collectionName + "/all", this.queryParams);
   }
 
   async getOne(id: string): Promise<any> {
