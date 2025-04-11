@@ -14,7 +14,7 @@ export class Collection {
   }
 
   filter(fieldName: string, operator: "=" | ">" | "<" | "<=" | ">=" | "!=", value: any): Collection {
-    this.queryParams.filter = `[${fieldName}][${operator}][${value}][${typeof value}]`;
+    this.queryParams[`filter[${fieldName}][${operator}][${typeof value}]`] = value;
     return this;
   }
 
