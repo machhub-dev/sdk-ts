@@ -1,12 +1,8 @@
 import { RecordID } from "./recordID.models";
-
-export interface BaseResponse {
-    success: boolean;
-}
+import { BaseResponse } from "./response.models";
 
 export interface LoginResponse extends BaseResponse {
     tkn: string;
-    message: string;
 }
 
 export interface PermissionResponse extends BaseResponse {
@@ -25,3 +21,21 @@ export interface User {
     userImage: string | ArrayBuffer | null;
     group_ids?: string[];
 };
+
+export interface Group {
+    id?: RecordID;
+    features?: {
+        name: string;
+        action: string;
+        domain: string;
+        scope: string;
+    }[];
+    name: string;
+    user_ids: RecordID[];
+};
+
+export interface ActionResponse extends BaseResponse {
+    action: "read" | "read-write" | ""
+}
+
+export type Action = "read" | "read-write" 

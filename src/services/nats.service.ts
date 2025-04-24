@@ -53,7 +53,7 @@ export class NATSService {
             try {
                 NATSService.log(`Connecting to NATS server (${this.url})...`);
                 this.connection = await connect({ servers: this.url });
-                this.connection.publish(HEALTH_SUBJECT, JSON.stringify(true));
+                this.connection?.publish(HEALTH_SUBJECT, JSON.stringify(true));
                 NATSService.log(`Published message: true to ${HEALTH_SUBJECT}`);
                 NATSService.log("Connected to NATS server");
             } catch (err: any) {
