@@ -136,11 +136,11 @@ export class SDK {
   private http: HTTPClient | null = null;
   private mqtt: MQTTClient | null = null;
   private nats: NATSClient | null = null;
-  historian: Historian | null = null;
-  tag: Tag | null = null;
-  function: Function | null = null;
-  flow: Flow | null = null;
-  auth: Auth | null = null;
+  private _historian: Historian | null = null;
+  private _tag: Tag | null = null;
+  private _function: Function | null = null;
+  private _flow: Flow | null = null;
+  private _auth: Auth | null = null;
 
   /**
    * Initializes the SDK with the required clients.
@@ -155,17 +155,67 @@ export class SDK {
       this.http = new HTTPClient(application_id, httpUrl);
       this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl);
       this.nats = await NATSClient.getInstance(application_id, natsUrl);
-      this.historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
-      this.tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
-      this.function = new Function(this.http["httpService"], this.nats["natsService"])
-      this.flow = new Flow(this.http["httpService"])
-      this.auth = new Auth(this.http["httpService"])
+      this._historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
+      this._tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
+      this._function = new Function(this.http["httpService"], this.nats["natsService"]);
+      this._flow = new Flow(this.http["httpService"]);
+      this._auth = new Auth(this.http["httpService"]);
     } catch (error: any) {
-      console.log("Failed to initialize :", error)
-      return false
+      console.log("Failed to initialize:", error);
+      return false;
     }
 
     return true;
+  }
+
+  /**
+   * Getter for `auth`. Ensures `auth` is accessed only after initialization.
+   */
+  public get auth(): Auth {
+    if (!this._auth) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing `auth`.");
+    }
+    return this._auth;
+  }
+
+  /**
+   * Getter for `historian`. Ensures `historian` is accessed only after initialization.
+   */
+  public get historian(): Historian {
+    if (!this._historian) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing `historian`.");
+    }
+    return this._historian;
+  }
+
+  /**
+   * Getter for `tag`. Ensures `tag` is accessed only after initialization.
+   */
+  public get tag(): Tag {
+    if (!this._tag) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing `tag`.");
+    }
+    return this._tag;
+  }
+
+  /**
+   * Getter for `function`. Ensures `function` is accessed only after initialization.
+   */
+  public get function(): Function {
+    if (!this._function) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing `function`.");
+    }
+    return this._function;
+  }
+
+  /**
+   * Getter for `flow`. Ensures `flow` is accessed only after initialization.
+   */
+  public get flow(): Flow {
+    if (!this._flow) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing `flow`.");
+    }
+    return this._flow;
   }
 
   /**
