@@ -29,4 +29,20 @@ export class Historian {
     }
     this.mqttService.addTopicHandler(topic, callback);
   }
+
+  async getLastNValues(topic: string, n: number): Promise<HistorizedData[]> {
+    if (n <= 0) {
+      throw new Error("The number of values to fetch must be greater than 0.");
+    }
+
+    if (n > 100){
+      throw new Error("The number of values to fetch must be less than 100.");
+    }
+
+    return this.httpService.request.withJSON({
+      topic: topic,
+      limit: n,
+      sort: "desc", // Fetch the latest values
+    }).patch("historian/last");
+  }
 }
