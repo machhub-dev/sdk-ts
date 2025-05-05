@@ -1,5 +1,5 @@
 import { HTTPService } from "../services/http.service";
-import { Action, ActionResponse, Group, LoginResponse, User } from "../types/auth.models";
+import { Action, ActionResponse, Feature, Group, LoginResponse, User } from "../types/auth.models";
 
 export class Auth {
   private httpService: HTTPService;
@@ -15,8 +15,6 @@ export class Auth {
           username: username,
           password: password,
       }).post("/auth/login");
-      console.log("res:", res)
-      console.log(localStorage)
  
       if (localStorage){
         localStorage.setItem("x-machhub-auth-tkn", res.tkn); // Set User JWT
@@ -37,7 +35,6 @@ export class Auth {
       localStorage.removeItem("x-machhub-auth-tkn"); // Remove User JWT
   }
 
-  // TODO : Check Action
   public async checkAction(feature:string, scope:string): Promise<ActionResponse> {
     try {
       const res: ActionResponse = await this.httpService.request.get(`/auth/permission/action/feature/${feature}/scope/${scope}`);
@@ -48,7 +45,6 @@ export class Auth {
     }
   }
 
-  // TODO : Check Permission
   public async checkPermission(feature:string, scope:string, action:Action): Promise<ActionResponse> {
     try {
       const res: ActionResponse = await this.httpService.request.get(`/auth/permission/check/feature/${feature}/scope/${scope}/action/${action}`);
@@ -59,20 +55,50 @@ export class Auth {
     }
   }
 
-  // TODO : create account
-  public async createUser(userDetails:User): Promise<LoginResponse> {
-    throw new Error("Not implemented yet: TODO : createUser");
-    // return await this.httpService.request.withJSON({ ...userDetails }).post("/auth/user");
+  public async getUsers(): Promise<User[]> {
+    return await this.httpService.request.get("/auth/user");
+  }
+
+  public async getUserById(userId:string): Promise<User> {
+    return await this.httpService.request.get(`/auth/user/${userId}`);
+  }
+
+  public async createUser(firstName:string, lastName:string, username:string, email:string, password:string, number:string, userImage:string): Promise<User> {
+    return await this.httpService.request.withJSON({ 
+      firstName: firstName,
+      lastName: lastName,
+      username: username,
+      email: email,
+      password: password,
+      number: number,
+      userImage: userImage
+     }).post("/auth/user");
+  }
+
+  public async getGroups(): Promise<Group[]> {    
+    return await this.httpService.request.get("/auth/group");
   }
 
   // TODO : create groups
-  public async createGroup(userDetails:Group): Promise<LoginResponse> {
-    throw new Error("Not implemented yet: TODO : createGroup");
-    // return await this.httpService.request.withJSON({ ...userDetails }).post("/auth/group");
+  public async createGroup(name:string, feature:Feature[]): Promise<Group> {
+    return await this.httpService.request.withJSON({ 
+      name: name,
+      feature: feature
+    }).post("/auth/group");
+  }
+
+  // TODO : add user into group  
+  public async addUserToGroup(userId:string, groupId:string): Promise<boolean> {
+    return await this.httpService.request.withJSON({ 
+      userId: userId,
+      groupId: groupId
+     }).post(`/auth/group/${groupId}/user/${userId}`);
   }
 
   // TODO : create features
-  public async createFeature(userDetails:User): Promise<LoginResponse> {
-    throw new Error("Not implemented yet: TODO : createFeature");
+  public async createFeature(name:string, description:string): Promise<LoginResponse> {
+    return await this.httpService.request.withJSON({
+      name: name,      description: description
+    }).post("/auth/feature");
   }
 }

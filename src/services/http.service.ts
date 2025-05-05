@@ -42,6 +42,7 @@ class RequestParameters {
         this.applicationID = applicationID;
         this.query = query;
         this.withDomain(); // Ensure withDomain() is called by default
+        this.withAccessToken(); // Ensure withAccessToken() is called by default
     }
 
     private withQuery(path: string, query?: Record<string, string>): URL {
