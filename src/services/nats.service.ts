@@ -1,4 +1,4 @@
-import { NatsConnection } from "@nats-io/nats-core";
+import { NatsConnection, wsconnect} from "@nats-io/nats-core";
 import { connect } from "@nats-io/transport-node";
 
 const HEALTH_SUBJECT = "runtime.typescript.health";
@@ -18,13 +18,12 @@ export class NATSService {
 
     constructor(url: string) {
         this.url = url;
-        connect()
     }
 
     /**
      * Returns a singleton instance of NATSService.
      */
-    static async getInstance(url: string = "nats://localhost:4222"): Promise<NATSService> {
+    static async getInstance(url: string = "ws://localhost:7500"): Promise<NATSService> {
         if (!this.instance || !this.instance.connection) {
             this.instance = new NATSService(url);
             await this.instance.connect();
@@ -52,7 +51,15 @@ export class NATSService {
         while (!this.connection && retries < maxRetries) {
             try {
                 NATSService.log(`Connecting to NATS server (${this.url})...`);
-                this.connection = await connect({ servers: this.url });
+                if (this.url.startsWith("nats")){
+                    NATSService.log("nats");
+                    this.connection = await connect({ servers: this.url });
+                } else if (this.url.startsWith("ws")){
+                    NATSService.log("ws");
+                    this.connection = await wsconnect({ servers: this.url });
+                } else{
+                    NATSService.log("Unsupported protocol : ", this.url.split("://")[0]);
+                }
                 this.connection?.publish(HEALTH_SUBJECT, JSON.stringify(true));
                 NATSService.log(`Published message: true to ${HEALTH_SUBJECT}`);
                 NATSService.log("Connected to NATS server");
@@ -100,7 +107,7 @@ export class NATSService {
     /**
      * Subscribes to the EXEC_FUNCTION_SUBJECT and executes registered functions.
     */
-    public initializeFunctions(): void {
+    public initializeFunctions(): boolean {
         if (!this.connection) {
             throw new Error("No active connection. Please connect to the NATS server first.");
         }
@@ -131,6 +138,7 @@ export class NATSService {
         });
 
         NATSService.log(`Subscribed to '${this.EXEC_FUNCTION_SUBJECT}'`);
+        return true
     }
 
     /**

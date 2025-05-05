@@ -102,9 +102,9 @@ class NATSClient {
   /**
    * Creates a new NATSClient instance
    * @param applicationID The ID for your application
-   * @param natsUrl The base URL for NATS connection (default = nats://localhost:4222)
+   * @param natsUrl The base URL for NATS connection (default = nats://localhost:7500)
    */
-  static async getInstance(applicationID?: string, natsUrl: string = "nats://localhost:4222"): Promise<NATSClient> {
+  static async getInstance(applicationID?: string, natsUrl: string = "ws://localhost:7500"): Promise<NATSClient> {
     if (!this.instance) {
       const natsService = await NATSService.getInstance(natsUrl);
       this.instance = new NATSClient(natsService);
@@ -131,6 +131,13 @@ class NATSClient {
   }
 }
 
+interface SDKConfig {
+  application_id: string;
+  httpUrl?: string;
+  mqttUrl?: string;
+  natsUrl?: string;
+}
+
 // SDK Class
 export class SDK {
   private http: HTTPClient | null = null;
@@ -144,14 +151,13 @@ export class SDK {
 
   /**
    * Initializes the SDK with the required clients.
-   * @param application_id {string} The application ID.
-   * @param httpUrl {string} The base URL for HTTP connection (default = http://localhost:80)
-   * @param mqttUrl {string} The base URL for MQTT connection (default = ws://localhost:180)
-   * @param natsUrl {string} The base URL for NATS connection (default = nats://localhost:4222)
+   * @param config {SDKConfig} The configuration object containing initialization parameters.
    * @returns {Promise<boolean>} Resolves to true if initialization is successful.
    */
-  public async Initialize(application_id: string, httpUrl?: string, mqttUrl?: string, natsUrl?: string): Promise<boolean> {
+  public async Initialize(config: SDKConfig): Promise<boolean> {
     try {
+      const { application_id, httpUrl, mqttUrl, natsUrl } = config;
+
       this.http = new HTTPClient(application_id, httpUrl);
       this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl);
       this.nats = await NATSClient.getInstance(application_id, natsUrl);
