@@ -10,7 +10,9 @@ interface SubscribedSubject {
 
 export class NATSService {
     private url!: string;
-    private functions: { [key: string]: (data: { [key: string]: any }) => { [key: string]: any } } = {};
+    private functions: {
+        [key: string]: (data: Record<string, any>) => Promise<Record<string, any>> | Record<string, any>;
+      } = {};
     private connection: NatsConnection | null = null;
     private static instance: NATSService | undefined;
     private subscribedSubjects: SubscribedSubject[] = [];
@@ -52,13 +54,11 @@ export class NATSService {
             try {
                 NATSService.log(`Connecting to NATS server (${this.url})...`);
                 if (this.url.startsWith("nats")){
-                    NATSService.log("nats");
                     this.connection = await connect({ servers: this.url });
                 } else if (this.url.startsWith("ws")){
-                    NATSService.log("ws");
                     this.connection = await wsconnect({ servers: this.url });
                 } else{
-                    NATSService.log("Unsupported protocol : ", this.url.split("://")[0]);
+                    NATSService.log("ERROR - Unsupported protocol : ", this.url.split("://")[0]);
                 }
                 this.connection?.publish(HEALTH_SUBJECT, JSON.stringify(true));
                 NATSService.log(`Published message: true to ${HEALTH_SUBJECT}`);
@@ -127,49 +127,55 @@ export class NATSService {
                 }
 
                 const functionName = subjectParts[3];
-                try {
-                    const result = this.executeFunction(functionName, data);
-                    NATSService.log(JSON.stringify(result));
-                    msg.respond(JSON.stringify(result));
-                } catch (e: any) {
-                    msg.respond(JSON.stringify({ error: e.message }));
-                }
+                this.executeFunction(functionName, data)
+                    .then((result) => {
+                        msg.respond(JSON.stringify(result));
+                    })
+                    .catch((e: any) => {
+                        msg.respond(JSON.stringify({ status:"failed", error: e.message }));
+                    });
             },
         });
 
         NATSService.log(`Subscribed to '${this.EXEC_FUNCTION_SUBJECT}'`);
-        return true
+        return true;
     }
 
     /**
- * Adds a new function to the registry.
- * @param functionName {string} The name of the function to add.
- * @param func {(data: Record<string, any>) => Record<string, any>} The function implementation.
- * @throws TypeError if the provided argument is not a function.
- */
-    public addFunction(functionName: string, func: (data: { [key: string]: any }) => { [key: string]: any }): void {
+     * Adds a new function to the registry.
+     * @param functionName {string} The name of the function to add.
+     * @param func {(data: Record<string, any>) => Promise<Record<string, any>> | Record<string, any>} The function implementation.
+     * @throws TypeError if the provided argument is not a function.
+     */
+    public addFunction(
+        functionName: string,
+        func: (data: Record<string, any>) => Promise<Record<string, any>> | Record<string, any>
+    ): void {
         if (typeof func !== "function") {
-            throw new TypeError(`The provided argument '${functionName}' is not a function.`);
+        throw new TypeError(`The provided argument '${functionName}' is not a function.`);
         }
         this.functions[functionName] = func;
     }
-
 
     /**
      * Executes a registered function by name with the provided arguments.
      * @param functionName {string} The name of the function to execute.
      * @param arg {Record<string, any>} The arguments to pass to the function. (JSON)
-     * @returns {Record<string, any>} The result of the function execution. (JSON)
+     * @returns {Promise<Record<string, any>>} The result of the function execution. (JSON)
      * @throws Error if the function is not found.
      */
-    public executeFunction(functionName: string, arg: { [key: string]: any }): { [key: string]: any } {
-        if (this.functions[functionName]) {
-            return this.functions[functionName](arg);
-        } else {
+    public async executeFunction(
+        functionName: string,
+        arg: Record<string, any>
+    ): Promise<Record<string, any>> {
+        const func = this.functions[functionName];
+        if (!func) {
             throw new Error(`Function '${functionName}' not found`);
         }
+    
+        return await func(arg);
     }
-
+        
     /**
      * Clears all subscribed subjects.
      */
