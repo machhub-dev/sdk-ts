@@ -1,8 +1,8 @@
 export { SDK } from './sdk-ts';
 export { getAppConfig } from './utils/appConfig';
 
-// Export all types
-export * from './types/auth.models';
-export * from './types/response.models';
-export * from './types/recordID.models';
-export * from './types/tag.models';
+// Export individual types
+export type { LoginResponse, PermissionResponse, User, Group, Feature, Permission, ActionResponse, Action, Scope } from './types/auth.models';
+export type { BaseResponse } from './types/response.models';
+export type { RecordID } from './types/recordID.models';
+export type { HistorizedData } from './types/tag.models';
