@@ -79,26 +79,20 @@ export class Auth {
     return await this.httpService.request.get("/auth/group");
   }
 
-  // TODO : create groups
-  public async createGroup(name:string, feature:Feature[]): Promise<Group> {
+  public async createGroup(name:string, features:Feature[]): Promise<Group> {
     return await this.httpService.request.withJSON({ 
       name: name,
-      feature: feature
+      features: features
     }).post("/auth/group");
   }
 
-  // TODO : add user into group  
   public async addUserToGroup(userId:string, groupId:string): Promise<boolean> {
-    return await this.httpService.request.withJSON({ 
-      userId: userId,
-      groupId: groupId
-     }).post(`/auth/group/${groupId}/user/${userId}`);
+    return await this.httpService.request.post(`/auth/group/${groupId}/user/${userId}`);
   }
 
-  // TODO : create features
-  public async createFeature(name:string, description:string): Promise<LoginResponse> {
+  public async addPermissionsToGroup(group_id:string, permissions:Feature[]): Promise<ActionResponse> {
     return await this.httpService.request.withJSON({
-      name: name,      description: description
-    }).post("/auth/feature");
+      group_id, permissions
+    }).post("/auth/permission");
   }
 }

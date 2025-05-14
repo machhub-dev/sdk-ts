@@ -36,7 +36,7 @@ export interface Group {
 
 export interface Feature {
     name:string
-    action:Action
+    action:string
     scope:Scope
 }
 
