@@ -86,7 +86,7 @@ export class Auth {
     }).post("/auth/group");
   }
 
-  public async addUserToGroup(userId:string, groupId:string): Promise<boolean> {
+  public async addUserToGroup(userId:string, groupId:string): Promise<ActionResponse> {
     return await this.httpService.request.post(`/auth/group/${groupId}/user/${userId}`);
   }
 

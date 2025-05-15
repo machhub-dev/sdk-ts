@@ -1,6 +1,6 @@
 {
   "name": "@machhub-dev/sdk-ts",
-  "version": "0.0.1",
+  "version": "1.0.0-pre",
   "description": "MACHHUB SDK",
   "keywords": [
     "machhub",
