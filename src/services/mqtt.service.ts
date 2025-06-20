@@ -40,7 +40,6 @@ export class MQTTService {
     // addTopicHandler Adds a topic and handler to the subscribed list
     public addTopicHandler(topic: string, handler: (message: unknown) => void): void {
         try {
-            this.subscribedTopics = [];
             this.subscribedTopics.push({ topic, handler });
             if (topic == "") return;
             console.log("New Subscription Handler:", topic);
