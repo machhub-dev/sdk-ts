@@ -1,4 +1,4 @@
-import { NatsConnection, wsconnect} from "@nats-io/nats-core";
+import { NatsConnection, Subscription, wsconnect } from "@nats-io/nats-core";
 import { connect } from "@nats-io/transport-node";
 
 const HEALTH_SUBJECT = "runtime.typescript.health";
@@ -10,12 +10,11 @@ interface SubscribedSubject {
 
 export class NATSService {
     private url!: string;
-    private functions: {
-        [key: string]: (data: Record<string, any>) => Promise<Record<string, any>> | Record<string, any>;
-      } = {};
+    private functions: Record<string, (data: Record<string, any>) => Promise<Record<string, any>> | Record<string, any>> = {};
     private connection: NatsConnection | null = null;
     private static instance: NATSService | undefined;
     private subscribedSubjects: SubscribedSubject[] = [];
+    private subscriptions: Subscription[] = [];
     private readonly EXEC_FUNCTION_SUBJECT = "runtime.exec.typescript.*";
 
     constructor(url: string) {
@@ -29,6 +28,17 @@ export class NATSService {
         if (!this.instance || !this.instance.connection) {
             this.instance = new NATSService(url);
             await this.instance.connect();
+            // console.log("Add Graceful Shutdown Handlers")
+            // // Graceful shutdown on SIGINT/SIGTERM
+            // const shutdown = async () => {
+            //     console.log("Graceful Shutdown: ")
+            //     if (this.instance) {
+            //         await this.instance.shutdown();
+            //     }
+            //     process.exit(0);
+            // };
+            // process.on("SIGINT", shutdown);
+            // process.on("SIGTERM", shutdown);
         }
         return this.instance;
     }
@@ -53,11 +63,11 @@ export class NATSService {
         while (!this.connection && retries < maxRetries) {
             try {
                 NATSService.log(`Connecting to NATS server (${this.url})...`);
-                if (this.url.startsWith("nats")){
+                if (this.url.startsWith("nats")) {
                     this.connection = await connect({ servers: this.url });
-                } else if (this.url.startsWith("ws")){
+                } else if (this.url.startsWith("ws")) {
                     this.connection = await wsconnect({ servers: this.url });
-                } else{
+                } else {
                     NATSService.log("ERROR - Unsupported protocol : ", this.url.split("://")[0]);
                 }
                 this.connection?.publish(HEALTH_SUBJECT, JSON.stringify(true));
@@ -89,7 +99,7 @@ export class NATSService {
             this.subscribedSubjects.push({ subject, handler });
             NATSService.log("New Subscription Handler:", subject);
 
-            this.connection?.subscribe(subject, {
+            const sub = this.connection?.subscribe(subject, {
                 callback: (err, msg) => {
                     if (err) {
                         console.error(`Error handling message for subject ${subject}:`, err);
@@ -99,6 +109,7 @@ export class NATSService {
                     handler(parsedMessage);
                 },
             });
+            if (sub) this.subscriptions.push(sub);
         } catch (e) {
             console.error(`Failed to subscribe to subject ${subject}:`, e);
         }
@@ -112,14 +123,14 @@ export class NATSService {
             throw new Error("No active connection. Please connect to the NATS server first.");
         }
 
-        this.connection.subscribe(this.EXEC_FUNCTION_SUBJECT, {
+        const sub = this.connection.subscribe(this.EXEC_FUNCTION_SUBJECT, {
             callback: (err, msg) => {
                 if (err) {
                     console.error("Error handling message:", err);
                     return;
                 }
 
-                const data = JSON.parse(msg.data.toString()) as { [key: string]: any };
+                const data = JSON.parse(msg.data.toString()) as Record<string, any>;
                 const subjectParts = msg.subject.split(".");
                 if (subjectParts.length !== 4) {
                     msg.respond(JSON.stringify({ error: "Invalid subject format" }));
@@ -132,10 +143,11 @@ export class NATSService {
                         msg.respond(JSON.stringify(result));
                     })
                     .catch((e: any) => {
-                        msg.respond(JSON.stringify({ status:"failed", error: e.message }));
+                        msg.respond(JSON.stringify({ status: "failed", error: e.message }));
                     });
             },
         });
+        if (sub) this.subscriptions.push(sub);
 
         NATSService.log(`Subscribed to '${this.EXEC_FUNCTION_SUBJECT}'`);
         return true;
@@ -152,7 +164,7 @@ export class NATSService {
         func: (data: Record<string, any>) => Promise<Record<string, any>> | Record<string, any>
     ): void {
         if (typeof func !== "function") {
-        throw new TypeError(`The provided argument '${functionName}' is not a function.`);
+            throw new TypeError(`The provided argument '${functionName}' is not a function.`);
         }
         this.functions[functionName] = func;
     }
@@ -172,10 +184,10 @@ export class NATSService {
         if (!func) {
             throw new Error(`Function '${functionName}' not found`);
         }
-    
+
         return await func(arg);
     }
-        
+
     /**
      * Clears all subscribed subjects.
      */
@@ -204,9 +216,9 @@ export class NATSService {
 
     /**
      * Retrieves all registered functions.
-     * @returns {Record<string, (data: Record<string, any>) => Record<string, any>>} An object containing all registered functions.
+     * @returns {Record<string, (data: Record<string, any>) => Record<string, any>} An object containing all registered functions.
      */
-    public getAllFunctions(): { [key: string]: (data: { [key: string]: any }) => { [key: string]: any } } {
+    public getAllFunctions(): Record<string, (data: Record<string, any>) => Record<string, any>> {
         return this.functions;
     }
 
@@ -233,5 +245,29 @@ export class NATSService {
             console.error("Error parsing message:", error);
             return null;
         }
+    }
+
+    /**
+     * Gracefully unsubscribes from all NATS subscriptions and closes the connection.
+     */
+    public async shutdown(): Promise<void> {
+        NATSService.log("Shutting down NATSService...");
+        for (const sub of this.subscriptions) {
+            try {
+                sub.unsubscribe();
+            } catch (e) {
+                NATSService.log("Error unsubscribing:", e);
+            }
+        }
+        this.subscriptions = [];
+        if (this.connection) {
+            try {
+                await this.connection.drain();
+                await this.connection.close();
+            } catch (e) {
+                NATSService.log("Error closing NATS connection:", e);
+            }
+        }
+        NATSService.log("NATSService shutdown complete.");
     }
 }

@@ -7,7 +7,7 @@ export class Flow {
     this.httpService = httpService;
   }
 
-  public async executeFlow(flow_id: string, payload: any): Promise<any> {
-    return await this.httpService.request.withJSON(payload).post("flow/execute/" + flow_id);
+  public async executeFlow(name: string, payload: any): Promise<any> {
+    return await this.httpService.request.withJSON(payload).post("flow/execute/name/" + name);
   }
 }

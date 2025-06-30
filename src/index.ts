@@ -1,4 +1,4 @@
-export { SDK } from './sdk-ts';
+export { SDK, type SDKConfig } from './sdk-ts';
 export { getAppConfig } from './utils/appConfig';
 
 // Export individual types

@@ -18,7 +18,7 @@ export class Function {
     }).post("function/execute");
   }
 
-  public async addFunction(name: string, func: (data: { [key: string]: any }) => { [key: string]: any }): Promise<any> {
+  public async addFunction(name: string, func: (data: Record<string,any>) => Record<string,any>): Promise<any> {
     if (!this.natsService) {
       throw new Error("NATS service not connected");
     }

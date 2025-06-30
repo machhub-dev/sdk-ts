@@ -102,7 +102,7 @@ class NATSClient {
   /**
    * Creates a new NATSClient instance
    * @param applicationID The ID for your application
-   * @param natsUrl The base URL for NATS connection (default = nats://localhost:7500)
+   * @param natsUrl The base URL for NATS connection (default = ws://localhost:7500)
    */
   static async getInstance(applicationID?: string, natsUrl: string = "ws://localhost:7500"): Promise<NATSClient> {
     if (!this.instance) {
@@ -131,7 +131,7 @@ class NATSClient {
   }
 }
 
-interface SDKConfig {
+export interface SDKConfig {
   application_id: string;
   httpUrl?: string;
   mqttUrl?: string;
@@ -151,7 +151,23 @@ export class SDK {
 
   /**
    * Initializes the SDK with the required clients.
-   * @param config {SDKConfig} The configuration object containing initialization parameters.
+   *
+   * Example usage:
+   * ```typescript
+   * import { SDK, type SDKConfig } from '@machhub-dev/sdk-ts';
+   *
+   * const config: SDKConfig = {
+   *   application_id: 'your-app-id',
+   *   httpUrl: 'http://localhost:80', // optional (default = http://localhost:80)
+   *   mqttUrl: 'ws://localhost:180',  // optional (default = ws://localhost:180)
+   *   natsUrl: 'ws://localhost:7500', // optional (default = ws://localhost:7500)
+   * };
+   *
+   * const sdk = new SDK();
+   * await sdk.Initialize(config);
+   * ```
+   *
+   * @param config {SDKConfig} The configuration object containing initialization parameters. See SDKConfig for details.
    * @returns {Promise<boolean>} Resolves to true if initialization is successful.
    */
   public async Initialize(config: SDKConfig): Promise<boolean> {
