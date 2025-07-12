@@ -15,10 +15,11 @@ export class Historian {
     return this.httpService.request.get("historian/list");
   }
 
-  async getHistoricalData(topic: string, start_time: string, range?: string): Promise<HistorizedData[]> {
+  async getHistoricalData(topic: string, start_time: Date, range?: string): Promise<HistorizedData[]> {
+    let isoStartTime = start_time.toISOString();
     return this.httpService.request.withJSON({
       topic: topic,
-      start_time: start_time,
+      start_time: isoStartTime,
       range: range,
     }).patch("historian");
   }
