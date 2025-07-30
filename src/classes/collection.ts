@@ -49,7 +49,7 @@ export class Collection {
     return this.httpService.request.withJSON(data).put(id);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string): Promise<any> {
     return this.httpService.request.delete(id);
   }
 }

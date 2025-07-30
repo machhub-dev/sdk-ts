@@ -9,6 +9,11 @@ export interface PermissionResponse extends BaseResponse {
     permission: boolean;
 }
 
+export interface ValidateJWTResponse extends BaseResponse {
+    valid: boolean;
+}
+
+
 export interface User {
     id?: RecordID;
     firstName: string;
