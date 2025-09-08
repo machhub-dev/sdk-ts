@@ -28,17 +28,6 @@ export class NATSService {
         if (!this.instance || !this.instance.connection) {
             this.instance = new NATSService(url);
             await this.instance.connect();
-            // console.log("Add Graceful Shutdown Handlers")
-            // // Graceful shutdown on SIGINT/SIGTERM
-            // const shutdown = async () => {
-            //     console.log("Graceful Shutdown: ")
-            //     if (this.instance) {
-            //         await this.instance.shutdown();
-            //     }
-            //     process.exit(0);
-            // };
-            // process.on("SIGINT", shutdown);
-            // process.on("SIGTERM", shutdown);
         }
         return this.instance;
     }
@@ -62,7 +51,7 @@ export class NATSService {
 
         while (!this.connection && retries < maxRetries) {
             try {
-                NATSService.log(`Connecting to NATS server (${this.url})...`);
+                // NATSService.log(`Connecting to NATS server (${this.url})...`);
                 if (this.url.startsWith("nats")) {
                     this.connection = await connect({ servers: this.url });
                 } else if (this.url.startsWith("ws")) {
@@ -71,8 +60,8 @@ export class NATSService {
                     NATSService.log("ERROR - Unsupported protocol : ", this.url.split("://")[0]);
                 }
                 this.connection?.publish(HEALTH_SUBJECT, JSON.stringify(true));
-                NATSService.log(`Published message: true to ${HEALTH_SUBJECT}`);
-                NATSService.log("Connected to NATS server");
+                // NATSService.log(`Published message: true to ${HEALTH_SUBJECT}`);
+                // NATSService.log("Connected to NATS server");
             } catch (err: any) {
                 NATSService.log("Caught an error during connection attempt:", err); // Debugging log
                 retries++;

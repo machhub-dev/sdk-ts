@@ -25,6 +25,7 @@ export class MQTTService {
             // Initialize the MQTT client
             this.instance.client = mqtt.connect(this.instance.url, { protocolVersion: 5 });
             this.instance.attachMessageListener();
+            // console.log("MQTT Client initialized with URL:", this.instance.url);
         }
         return this.instance;
     }
@@ -83,6 +84,14 @@ export class MQTTService {
     }
 
     private attachMessageListener(): void {
+        this.client.on('connect', () => {
+            console.log("MQTT connected to", this.url);
+        });
+
+        this.client.on('error', (error: Error) => {
+            console.error("MQTT connection error:", error);
+        });
+
         this.client.on('message', (topic: string, message: Buffer) => {
             for (const subscribedTopic of this.subscribedTopics) {
                 if (topic === subscribedTopic.topic) {
