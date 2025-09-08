@@ -183,7 +183,7 @@ export class SDK {
       this._flow = new Flow(this.http["httpService"]);
       this._auth = new Auth(this.http["httpService"]);
     } catch (error: any) {
-      console.log("Failed to initialize:", error);
+      console.error("Failed to initialize:", error);
       return false;
     }
 
