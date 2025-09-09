@@ -1,13 +1,13 @@
-import { HTTPService } from "./services/http.service";
-import { MQTTService } from "./services/mqtt.service";
-import { NATSService } from "./services/nats.service";
-import { getAppConfig } from "./utils/appConfig";
-import { Collection } from "./classes/collection";
-import { Historian } from "./classes/historian";
-import { Tag } from "./classes/tag";
-import { Function } from "./classes/function";
-import { Flow } from "./classes/flow";
-import { Auth } from "./classes/auth";
+import { HTTPService } from "./services/http.service.js";
+import { MQTTService } from "./services/mqtt.service.js";
+import { NATSService } from "./services/nats.service.js";
+import { getAppConfig } from "./utils/appConfig.js";
+import { Collection } from "./classes/collection.js";
+import { Historian } from "./classes/historian.js";
+import { Tag } from "./classes/tag.js";
+import { Function } from "./classes/function.js";
+import { Flow } from "./classes/flow.js";
+import { Auth } from "./classes/auth.js";
 
 const MACHHUB_SDK_PATH = "machhub";
 

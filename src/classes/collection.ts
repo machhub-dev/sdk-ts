@@ -1,5 +1,5 @@
-import { HTTPService } from "../services/http.service";
-import { MQTTService } from "../services/mqtt.service";
+import { HTTPService } from "../services/http.service.js";
+import { MQTTService } from "../services/mqtt.service.js";
 
 export class Collection {
   protected httpService: HTTPService;

@@ -1,5 +1,5 @@
-import { HTTPService } from "../services/http.service";
-import { NATSService } from "../services/nats.service";
+import { HTTPService } from "../services/http.service.js";
+import { NATSService } from "../services/nats.service.js";
 
 export class Function {
   private httpService: HTTPService;

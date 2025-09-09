@@ -1,6 +1,6 @@
-import { HTTPService } from "../services/http.service";
-import { MQTTService } from "../services/mqtt.service";
-import { HistorizedData } from "../types/tag.models";
+import { HTTPService } from "../services/http.service.js";
+import { MQTTService } from "../services/mqtt.service.js";
+import { HistorizedData } from "../types/tag.models.js";
 
 export class Historian {
   private httpService: HTTPService;

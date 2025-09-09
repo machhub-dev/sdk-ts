@@ -1,5 +1,5 @@
-import { HTTPService } from "../services/http.service";
-import { Action, ActionResponse, Feature, Group, LoginResponse, User, ValidateJWTResponse } from "../types/auth.models";
+import { HTTPService } from "../services/http.service.js";
+import { Action, ActionResponse, Feature, Group, LoginResponse, User, ValidateJWTResponse } from "../types/auth.models.js";
 
 export class Auth {
   private httpService: HTTPService;

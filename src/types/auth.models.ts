@@ -1,5 +1,5 @@
-import { RecordID } from "./recordID.models";
-import { BaseResponse } from "./response.models";
+import { RecordID } from "./recordID.models.js";
+import { BaseResponse } from "./response.models.js";
 
 export interface LoginResponse extends BaseResponse {
     tkn: string;

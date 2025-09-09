@@ -1,4 +1,4 @@
-import { SDK, SDKConfig } from "../index";
+import { SDK, SDKConfig } from "../index.js";
 
 let sdk = new SDK();
 let config: SDKConfig = {

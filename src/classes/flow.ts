@@ -1,4 +1,4 @@
-import { HTTPService } from "../services/http.service";
+import { HTTPService } from "../services/http.service.js";
 
 export class Flow {
   private httpService: HTTPService;
