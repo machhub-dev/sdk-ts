@@ -18,9 +18,9 @@ class HTTPClient {
   /**
    * Creates a new HTTPClient instance
    * @param applicationID The ID for your application (required)
-   * @param httpUrl The base URL for HTTP connection (default = http://localhost:80)
+   * @param httpUrl The base URL for HTTP connection (default = http://localhost:6188)
    */
-  constructor(applicationID: string, httpUrl: string = "http://localhost:80") {
+  constructor(applicationID: string, httpUrl: string = "http://localhost:6188") {
     if (!applicationID) {
       const config = getAppConfig()
       if (config != undefined) {
@@ -158,7 +158,7 @@ export class SDK {
    *
    * const config: SDKConfig = {
    *   application_id: 'your-app-id',
-   *   httpUrl: 'http://localhost:80', // optional (default = http://localhost:80)
+   *   httpUrl: 'http://localhost:6188', // optional (default = http://localhost:6188)
    *   mqttUrl: 'ws://localhost:180',  // optional (default = ws://localhost:180)
    *   natsUrl: 'ws://localhost:7500', // optional (default = ws://localhost:7500)
    * };
