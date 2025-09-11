@@ -9,7 +9,7 @@ export class HTTPException extends Error {
         this.statusText = statusText;
         this.body = body;
     }
-    
+
     public get message(): string {
         return `(EXCEPTION) ${this.statusText} - ${this.body}`
     }
@@ -18,37 +18,65 @@ export class HTTPException extends Error {
 export class HTTPService {
     private url: URL;
     private applicationID: string;
+    private developerKey?: string;
 
-    constructor(url: string, prefix?: string, applicationID?:string) {
+    constructor(url: string, prefix: string, applicationID: string, developerKey?: string) {
         if (prefix == null) prefix = "";
         this.url = new URL(prefix, url);
         this.applicationID = "domains:" + applicationID
+        this.developerKey = developerKey
     }
 
     public get request(): RequestParameters {
-        return new RequestParameters(this.url, this.applicationID);
+        return new RequestParameters(this.url, this.applicationID, this.developerKey);
+    }
+
+    private addRuntimeHeaders(headers: Record<string, string> = {}): Record<string, string> {
+        // Add runtime ID from cookie if available (for hosted applications)
+        if (typeof document !== 'undefined') {
+            const runtimeID = this.getCookie('machhub_runtime_id');
+            if (runtimeID) {
+                headers['X-MachHub-Runtime-ID'] = runtimeID;
+            }
+        }
+
+        return headers;
+    }
+
+    private getCookie(name: string): string | null {
+        if (typeof document === 'undefined') return null;
+
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) {
+            return parts.pop()?.split(';').shift() || null;
+        }
+        return null;
     }
 }
 
 class RequestParameters {
     private base: URL;
     private applicationID: string;
+    private developerKey?: string;
     public query?: Record<string, string>;
     public init?: RequestInit;
     public headers?: Record<string, string>;
 
-    constructor(base: URL, applicationID:string, query?: Record<string, string>) {
+    constructor(base: URL, applicationID: string, developerKey?:string, query?: Record<string, string>) {
         this.base = base;
         this.applicationID = applicationID;
+        this.developerKey = developerKey;
         this.query = query;
         this.withDomain(); // Ensure withDomain() is called by default
         this.withAccessToken(); // Ensure withAccessToken() is called by default
+        this.withDeveloperKey(); // Ensure withDeveloperKey() is called by default
     }
 
     private withQuery(path: string, query?: Record<string, string>): URL {
         const newPath = [this.base.pathname, path].map(pathPart => pathPart.replace(/(^\/|\/$)/g, "")).join("/");
         const newURL = new URL(newPath, this.base);
-        
+
         for (const key in query) {
             newURL.searchParams.append(key, query[key]);
         }
@@ -59,7 +87,7 @@ class RequestParameters {
         if (method == null && this.headers == null) return;
 
         let tempInit = Object.assign({}, this.init);
-        
+
         if (tempInit == null) {
             tempInit = {} as RequestInit;
         }
@@ -69,7 +97,7 @@ class RequestParameters {
         if (this.headers != null && tempInit != null) {
             tempInit.headers = Object.assign({}, this.headers);
         }
-        
+
         return tempInit;
     }
 
@@ -147,6 +175,13 @@ class RequestParameters {
         return this;
     }
 
+    public withDeveloperKey(): RequestParameters {
+        if (!this.developerKey) return this;
+        this.setHeader("X-Machhub-Api-Key", this.developerKey);
+        return this;
+    }
+
+
     public withContentType(mime: string): RequestParameters {
         this.setHeader("Content-Type", mime);
         return this;
@@ -159,7 +194,7 @@ class RequestParameters {
 
     public async get<ReturnType>(path: string, query?: Record<string, string>): Promise<ReturnType> {
         const response = await fetch(this.withQuery(path, query), this.parseInit());
-        
+
         if (!response.ok) {
             throw new HTTPException(
                 response.status,
@@ -172,7 +207,7 @@ class RequestParameters {
 
     public async post<ReturnType>(path: string, query?: Record<string, string>, body?: FormData | Record<string, string>): Promise<ReturnType> {
         const init: RequestInit = this.parseInit("POST") || {};
-    
+
         if (body) {
             if (body instanceof FormData) {
                 init.body = body;
@@ -184,9 +219,9 @@ class RequestParameters {
                 };
             }
         }
-    
+
         const response = await fetch(this.withQuery(path, query), init);
-        
+
         if (!response.ok) {
             throw new HTTPException(
                 response.status,
@@ -196,11 +231,11 @@ class RequestParameters {
         }
         return response.json() as ReturnType;
     }
-    
+
 
     public async put<ReturnType>(path: string, query?: Record<string, string>): Promise<ReturnType> {
         const response = await fetch(this.withQuery(path, query), this.parseInit("PUT"));
-        
+
         if (!response.ok) {
             throw new HTTPException(
                 response.status,
@@ -213,7 +248,7 @@ class RequestParameters {
 
     public async delete<ReturnType>(path: string, query?: Record<string, string>): Promise<ReturnType> {
         const response = await fetch(this.withQuery(path, query), this.parseInit("DELETE"));
-        
+
         if (!response.ok) {
             throw new HTTPException(
                 response.status,
@@ -226,7 +261,7 @@ class RequestParameters {
 
     public async patch<ReturnType>(path: string, query?: Record<string, string>): Promise<ReturnType> {
         const response = await fetch(this.withQuery(path, query), this.parseInit("PATCH"));
-        
+
         if (!response.ok) {
             throw new HTTPException(
                 response.status,

@@ -15,7 +15,7 @@ export class MQTTService {
         this.url = url;
     }
 
-    static async getInstance(url: string = "ws://localhost:180"): Promise<MQTTService> {
+    static async getInstance(url: string = "ws://localhost:180", developerKey?:string): Promise<MQTTService> {
         if (!this.instance || !this.instance.client) {
             this.instance = new MQTTService(url);
 
@@ -23,7 +23,14 @@ export class MQTTService {
             this.instance.url = url;
 
             // Initialize the MQTT client
-            this.instance.client = mqtt.connect(this.instance.url, { protocolVersion: 5 });
+            const connectOptions = {
+                protocolVersion: 5 as const,
+                ...(developerKey && {
+                    username: "mch_developer_key",
+                    password: developerKey,
+                })
+            };
+            this.instance.client = mqtt.connect(this.instance.url, connectOptions);
             this.instance.attachMessageListener();
             // console.log("MQTT Client initialized with URL:", this.instance.url);
         }

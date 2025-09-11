@@ -1,7 +1,6 @@
 import { HTTPService } from "./services/http.service.js";
 import { MQTTService } from "./services/mqtt.service.js";
 import { NATSService } from "./services/nats.service.js";
-import { getAppConfig } from "./utils/appConfig.js";
 import { Collection } from "./classes/collection.js";
 import { Historian } from "./classes/historian.js";
 import { Tag } from "./classes/tag.js";
@@ -20,19 +19,8 @@ class HTTPClient {
    * @param applicationID The ID for your application (required)
    * @param httpUrl The base URL for HTTP connection (default = http://localhost:6188)
    */
-  constructor(applicationID: string, httpUrl: string = "http://localhost:6188") {
-    if (!applicationID) {
-      const config = getAppConfig()
-      if (config != undefined) {
-        applicationID = config.application_id;
-      } else {
-        throw new Error("Failed to get Configuration.");
-      }
-      if (!applicationID) {
-        throw new Error("Application ID is required. Set it via the APP_ID environment variable or pass it as a parameter.");
-      }
-    }
-    this.httpService = new HTTPService(httpUrl, MACHHUB_SDK_PATH, applicationID);
+  constructor(applicationID: string, httpUrl:string, developerKey?: string) {
+    this.httpService = new HTTPService(httpUrl, MACHHUB_SDK_PATH, applicationID, developerKey);
   }
 
   /**
@@ -57,7 +45,7 @@ class MQTTClient {
    * @param applicationID The ID for your application
    * @param mqttUrl The base URL for MQTT connection (default = ws://localhost:180)
    */
-  static async getInstance(applicationID?: string, mqttUrl: string = "ws://localhost:180"): Promise<MQTTClient> {
+  static async getInstance(applicationID?: string, mqttUrl: string = "ws://localhost:180", developerKey? :string): Promise<MQTTClient> {
     // if (!applicationID) {
     //   applicationID = process.env.APP_ID;
     //   if (!applicationID) {
@@ -65,7 +53,7 @@ class MQTTClient {
     //   }
     // }
     if (!this.instance) {
-      const mqttService = await MQTTService.getInstance(mqttUrl);
+      const mqttService = await MQTTService.getInstance(mqttUrl, developerKey);
       this.instance = new MQTTClient(mqttService); // Use the constructor to initialize the instance
     }
     return this.instance;
@@ -133,6 +121,7 @@ class NATSClient {
 
 export interface SDKConfig {
   application_id: string;
+  developer_key?: string;
   httpUrl?: string;
   mqttUrl?: string;
   natsUrl?: string;
@@ -170,13 +159,44 @@ export class SDK {
    * @param config {SDKConfig} The configuration object containing initialization parameters. See SDKConfig for details.
    * @returns {Promise<boolean>} Resolves to true if initialization is successful.
    */
-  public async Initialize(config: SDKConfig): Promise<boolean> {
+  public async Initialize(config?: SDKConfig): Promise<boolean> {
     try {
+      console.log("Initializing SDK with config:", config)
+
+      // Methods to initialize config 
+      // 1. Via application_id + URLs + developer key passed in config parameter
+      // 2. Via development server - Set via Extension/ 
+      //          API to get Config (All SDK URLs default to localhost with port from querying current window or 61888)
+
+      if (config === undefined) config = { application_id: "" }
+      if (!config.application_id) config = { application_id: "" }
+      console.log("Using application_id:", config.application_id);
+
+
+      const PORT = await getEnvPort();
+      console.log("Using port:", PORT);
+
+      if (!config.httpUrl) {
+        config.httpUrl = "http://localhost:" + PORT;
+      }
+
+      if (!config.mqttUrl) {
+        config.mqttUrl = "ws://localhost:" + PORT + "/mqtt";
+      }
+
+      if (!config.natsUrl) {
+        config.natsUrl = "ws://localhost:" + PORT + "/nats";
+      }
+
       const { application_id, httpUrl, mqttUrl, natsUrl } = config;
 
-      this.http = new HTTPClient(application_id, httpUrl);
-      this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl);
+      console.log("Final config:", { application_id, httpUrl, mqttUrl, natsUrl });
+
+
+      this.http = new HTTPClient(application_id, httpUrl, config.developer_key);
+      this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl, config.developer_key);
       this.nats = await NATSClient.getInstance(application_id, natsUrl);
+      
       this._historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
       this._tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
       this._function = new Function(this.http["httpService"], this.nats["natsService"]);
@@ -251,5 +271,41 @@ export class SDK {
       throw new Error("SDK is not initialized. Call `Initialize` before accessing collection.");
     }
     return new Collection(this.http["httpService"], this.mqtt ? this.mqtt["mqttService"] : null, collectionName);
+  }
+}
+
+async function getEnvPort(): Promise<string> {
+  console.log(window.location.origin)
+  try {
+    const response = await fetchData<{runtimeID:string, port:string}>(window.location.origin + "/_cfg");
+    // console.log('Response:', response);
+    // console.log('runtimeID: ', response.runtimeID);
+    // console.log('applicationID: ', response.runtimeID.split('XmchX')[0]);
+    return response.port;
+  } catch (error) {
+    // console.log('No configured runtime ID:', error);
+    // TODO: Use DevPort from SDK Config or default to 61888
+    return "61888";
+  }
+}
+
+
+async function fetchData<T>(url: string): Promise<T> {
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data: T = await response.json();
+    return data;
+  } catch (error) {
+    throw error;
   }
 }
