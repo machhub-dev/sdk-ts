@@ -46,4 +46,10 @@ export class Historian {
       sort: "desc", // Fetch the latest values
     }).patch("historian/last");
   }
+
+  async query(SurrealQL:string): Promise<any> {
+    return this.httpService.request.withJSON({
+      query: SurrealQL
+    }).post("historian/query");
+  }
 }
