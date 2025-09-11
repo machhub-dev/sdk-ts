@@ -38,6 +38,9 @@ export class Collection {
   }
 
   async getOne(id: string): Promise<any> {
+    if (!id) {
+      throw new Error("ID must be provided");
+    }
     return this.httpService.request.get(id);
   }
 
@@ -46,10 +49,16 @@ export class Collection {
   }
 
   async update(id: string, data: Record<string, any>): Promise<any> {
+    if (!id) {
+      throw new Error("ID must be provided");
+    }
     return this.httpService.request.withJSON(data).put(id);
   }
 
   async delete(id: string): Promise<any> {
+    if (!id) {
+      throw new Error("ID must be provided");
+    }
     return this.httpService.request.delete(id);
   }
 }
