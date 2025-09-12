@@ -161,7 +161,7 @@ export class SDK {
    */
   public async Initialize(config?: SDKConfig): Promise<boolean> {
     try {
-      console.log("Initializing SDK with config:", config)
+      // console.log("Initializing SDK with config:", config)
 
       // Methods to initialize config 
       // 1. Via application_id + URLs + developer key passed in config parameter
@@ -170,11 +170,11 @@ export class SDK {
 
       if (config === undefined) config = { application_id: "" }
       if (!config.application_id) config = { application_id: "" }
-      console.log("Using application_id:", config.application_id);
+      // console.log("Using application_id:", config.application_id);
 
 
       const PORT = await getEnvPort();
-      console.log("Using port:", PORT);
+      // console.log("Using port:", PORT);
 
       if (!config.httpUrl) {
         config.httpUrl = "http://localhost:" + PORT;
@@ -190,8 +190,7 @@ export class SDK {
 
       const { application_id, httpUrl, mqttUrl, natsUrl } = config;
 
-      console.log("Final config:", { application_id, httpUrl, mqttUrl, natsUrl });
-
+      // console.log("Final config:", { application_id, httpUrl, mqttUrl, natsUrl });
 
       this.http = new HTTPClient(application_id, httpUrl, config.developer_key);
       this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl, config.developer_key);
@@ -275,7 +274,6 @@ export class SDK {
 }
 
 async function getEnvPort(): Promise<string> {
-  console.log(window.location.origin)
   try {
     const response = await fetchData<{runtimeID:string, port:string}>(window.location.origin + "/_cfg");
     // console.log('Response:', response);

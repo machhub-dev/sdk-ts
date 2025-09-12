@@ -92,7 +92,7 @@ export class MQTTService {
 
     private attachMessageListener(): void {
         this.client.on('connect', () => {
-            console.log("MQTT connected to", this.url);
+            // console.log("MQTT connected to", this.url);
         });
 
         this.client.on('error', (error: Error) => {
