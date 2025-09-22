@@ -23,11 +23,11 @@
     "mqtt": "^5.10.4",
     "safe-buffer": "^5.2.1",
     "typescript": "^5.8.3",
-    "undici-types": "^7.4.0"
+    "undici-types": "^7.4.0",
+    "@nats-io/nats-core": "^3.0.2",
+    "@nats-io/transport-node": "^3.0.2"
   },
   "devDependencies": {
-    "@nats-io/nats-core": "^3.0.2",
-    "@nats-io/transport-node": "^3.0.2",
     "@types/node": "^22.13.5"
   }
 }
