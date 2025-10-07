@@ -1,5 +1,19 @@
-import { HTTPService } from "../services/http.service.js";
+import { HTTPService, HTTPException } from "../services/http.service.js";
 import { MQTTService } from "../services/mqtt.service.js";
+
+export class CollectionError extends Error {
+  public operation: string;
+  public collectionName: string;
+  public originalError: Error;
+
+  constructor(operation: string, collectionName: string, originalError: Error) {
+    super(`Collection operation '${operation}' failed on '${collectionName}': ${originalError.message}`);
+    this.name = 'CollectionError';
+    this.operation = operation;
+    this.collectionName = collectionName;
+    this.originalError = originalError;
+  }
+}
 
 export class Collection {
   protected httpService: HTTPService;
@@ -34,31 +48,51 @@ export class Collection {
   }
 
   async getAll(): Promise<any[]> {
-    return this.httpService.request.get(this.collectionName + "/all", this.queryParams);
+    try {
+      return await this.httpService.request.get(this.collectionName + "/all", this.queryParams);
+    } catch (error) {
+      throw new CollectionError('getAll', this.collectionName, error as Error);
+    }
   }
 
   async getOne(id: string): Promise<any> {
     if (!id) {
       throw new Error("ID must be provided");
     }
-    return this.httpService.request.get(id);
+    try {
+      return await this.httpService.request.get(id);
+    } catch (error) {
+      throw new CollectionError('getOne', this.collectionName, error as Error);
+    }
   }
 
   async create(data: Record<string, any>): Promise<any> {
-    return this.httpService.request.withJSON(data).post(this.collectionName);
+    try {
+      return await this.httpService.request.withJSON(data).post(this.collectionName);
+    } catch (error) {
+      throw new CollectionError('create', this.collectionName, error as Error);
+    }
   }
 
   async update(id: string, data: Record<string, any>): Promise<any> {
     if (!id) {
       throw new Error("ID must be provided");
     }
-    return this.httpService.request.withJSON(data).put(id);
+    try {
+      return await this.httpService.request.withJSON(data).put(id);
+    } catch (error) {
+      throw new CollectionError('update', this.collectionName, error as Error);
+    }
   }
 
   async delete(id: string): Promise<any> {
     if (!id) {
       throw new Error("ID must be provided");
     }
-    return this.httpService.request.delete(id);
+    try {
+      return await this.httpService.request.delete(id);
+    } catch (error) {
+      throw new CollectionError('delete', this.collectionName, error as Error);
+    }
   }
 }
