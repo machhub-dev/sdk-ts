@@ -174,7 +174,7 @@ export class SDK {
 
 
       const PORT = await getEnvPort();
-      // console.log("Using port:", PORT);
+      console.log("Using port:", PORT);
 
       if (!config.httpUrl) {
         config.httpUrl = "http://localhost:" + PORT;
@@ -190,7 +190,7 @@ export class SDK {
 
       const { application_id, httpUrl, mqttUrl, natsUrl } = config;
 
-      // console.log("Final config:", { application_id, httpUrl, mqttUrl, natsUrl });
+      console.log("Final config:", { application_id, httpUrl, mqttUrl, natsUrl, developer_key: config.developer_key?.split('').map((_, i) => i < config!.developer_key!.length - 4 ? '*' : config!.developer_key![i]).join('') });
 
       this.http = new HTTPClient(application_id, httpUrl, config.developer_key);
       this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl, config.developer_key);
@@ -275,7 +275,9 @@ export class SDK {
 
 async function getEnvPort(): Promise<string> {
   try {
-    const response = await fetchData<{runtimeID:string, port:string}>(window.location.origin + "/_cfg");
+    // Try to find the configuration endpoint by testing different base paths
+    const configUrl = await findConfigEndpoint();
+    const response = await fetchData<{runtimeID:string, port:string}>(configUrl);
     // console.log('Response:', response);
     // console.log('runtimeID: ', response.runtimeID);
     // console.log('applicationID: ', response.runtimeID.split('XmchX')[0]);
@@ -287,14 +289,101 @@ async function getEnvPort(): Promise<string> {
   }
 }
 
+/**
+ * Attempts to find the correct configuration endpoint by trying different base paths
+ * Handles both port-based hosting (direct) and path-based hosting (reverse proxy)
+ */
+async function findConfigEndpoint(): Promise<string> {
+  const origin = window.location.origin;
+  const pathname = window.location.pathname;
+  
+  // List of potential base paths to try, ordered by likelihood
+  const basePaths = [
+    // 1. Try origin directly (for port-based hosting like localhost:6190)
+    origin,
+    
+    // 2. Try current path segments for path-based hosting
+    ...generatePathCandidates(pathname),
+    
+    // 3. Try common root paths as fallback
+    origin,
+  ];
 
-async function fetchData<T>(url: string): Promise<T> {
+  // Remove duplicates while preserving order
+  const uniqueBasePaths = [...new Set(basePaths)];
+
+  for (const basePath of uniqueBasePaths) {
+    try {
+      const configUrl = `${basePath}/_cfg`;
+      
+      // Test if this endpoint returns valid JSON config by making a GET request
+      const testResponse = await fetch(configUrl, { 
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(2000) // 2 second timeout
+      });
+      
+      if (testResponse.ok) {
+        // Validate that the response is JSON and contains the expected 'port' field
+        const contentType = testResponse.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const testData = await testResponse.json();
+            // Check if the response has the expected structure with a 'port' field
+            if (testData && typeof testData === 'object' && 'port' in testData) {
+              console.log(`Found config endpoint at: ${configUrl}`);
+              return configUrl;
+            }
+          } catch (jsonError) {
+            // Not valid JSON, continue to next candidate
+            continue;
+          }
+        }
+      }
+    } catch (error) {
+      // Continue to next candidate
+      continue;
+    }
+  }
+
+  // If all attempts fail, default to origin + /_cfg
+  console.warn('Could not find config endpoint, using default origin');
+  return `${origin}/_cfg`;
+}
+
+/**
+ * Generates potential base path candidates from the current pathname
+ * For example, /demo2/homepage/settings would generate:
+ * - http://localhost/demo2/homepage
+ * - http://localhost/demo2
+ * - http://localhost
+ */
+function generatePathCandidates(pathname: string): string[] {
+  const origin = window.location.origin;
+  const pathSegments = pathname.split('/').filter(segment => segment.length > 0);
+  const candidates: string[] = [];
+
+  // Generate paths by progressively removing segments from the end
+  for (let i = pathSegments.length; i > 0; i--) {
+    const path = '/' + pathSegments.slice(0, i).join('/');
+    candidates.push(origin + path);
+  }
+
+  return candidates;
+}
+
+
+async function fetchData<T>(url: string, options?: RequestInit): Promise<T> {
   try {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
       },
+      signal: AbortSignal.timeout(5000), // 5 second timeout
+      ...options
     });
 
     if (!response.ok) {

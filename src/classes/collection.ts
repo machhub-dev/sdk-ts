@@ -1,4 +1,4 @@
-import { HTTPService, HTTPException } from "../services/http.service.js";
+import { HTTPService } from "../services/http.service.js";
 import { MQTTService } from "../services/mqtt.service.js";
 
 export class CollectionError extends Error {
