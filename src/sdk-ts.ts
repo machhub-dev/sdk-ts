@@ -174,7 +174,7 @@ export class SDK {
 
 
       const PORT = await getEnvPort();
-      console.log("Using port:", PORT);
+      console.log("Port:", PORT);
 
       if (!config.httpUrl) {
         config.httpUrl = "http://localhost:" + PORT;
@@ -190,7 +190,7 @@ export class SDK {
 
       const { application_id, httpUrl, mqttUrl, natsUrl } = config;
 
-      console.log("Final config:", { application_id, httpUrl, mqttUrl, natsUrl, developer_key: config.developer_key?.split('').map((_, i) => i < config!.developer_key!.length - 4 ? '*' : config!.developer_key![i]).join('') });
+      console.log("SDK Config:", { application_id, httpUrl, mqttUrl, natsUrl, developer_key: config.developer_key?.split('').map((_, i) => i < config!.developer_key!.length - 4 ? '*' : config!.developer_key![i]).join('') });
 
       this.http = new HTTPClient(application_id, httpUrl, config.developer_key);
       this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl, config.developer_key);
@@ -333,7 +333,7 @@ async function findConfigEndpoint(): Promise<string> {
             const testData = await testResponse.json();
             // Check if the response has the expected structure with a 'port' field
             if (testData && typeof testData === 'object' && 'port' in testData) {
-              console.log(`Found config endpoint at: ${configUrl}`);
+              // console.log(`Found config endpoint at: ${configUrl}`);
               return configUrl;
             }
           } catch (jsonError) {

@@ -50,7 +50,7 @@ export class MQTTService {
         try {
             this.subscribedTopics.push({ topic, handler });
             if (topic == "") return;
-            console.log("New Subscription Handler:", topic);
+            // console.log("New Subscription Handler:", topic);
             this.client.subscribe(topic, { qos: 2 }, (err?: unknown) => {
                 if (err) {
                     console.error(`Failed to subscribe to topic ${topic}:`, err);
@@ -70,7 +70,7 @@ export class MQTTService {
     public publish(topic: string, message: unknown): boolean {
         try {
             const payload = JSON.stringify(message);
-            console.log("Publishing to", topic, "with payload:", payload);
+            // console.log("Publishing to", topic, "with payload:", payload);
 
             this.client.publish(topic, payload, {
                 qos: 2,
