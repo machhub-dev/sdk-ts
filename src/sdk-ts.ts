@@ -19,8 +19,8 @@ class HTTPClient {
    * @param applicationID The ID for your application (required)
    * @param httpUrl The base URL for HTTP connection (default = http://localhost:6188)
    */
-  constructor(applicationID: string, httpUrl:string, developerKey?: string) {
-    this.httpService = new HTTPService(httpUrl, MACHHUB_SDK_PATH, applicationID, developerKey);
+  constructor(applicationID: string, httpUrl:string, developerKey?: string, runtimeID?: string) {
+    this.httpService = new HTTPService(httpUrl, MACHHUB_SDK_PATH, applicationID, developerKey, runtimeID);
   }
 
   /**
@@ -173,26 +173,26 @@ export class SDK {
       // console.log("Using application_id:", config.application_id);
 
 
-      const PORT = await getEnvPort();
-      console.log("Port:", PORT);
+      const {port, runtimeID} = await getEnvConfig();
+      console.log("Port:", port);
 
       if (!config.httpUrl) {
-        config.httpUrl = "http://localhost:" + PORT;
+        config.httpUrl = "http://localhost:" + port;
       }
 
       if (!config.mqttUrl) {
-        config.mqttUrl = "ws://localhost:" + PORT + "/mqtt";
+        config.mqttUrl = "ws://localhost:" + port + "/mqtt";
       }
 
       if (!config.natsUrl) {
-        config.natsUrl = "ws://localhost:" + PORT + "/nats";
+        config.natsUrl = "ws://localhost:" + port + "/nats";
       }
 
       const { application_id, httpUrl, mqttUrl, natsUrl } = config;
 
       console.log("SDK Config:", { application_id, httpUrl, mqttUrl, natsUrl, developer_key: config.developer_key?.split('').map((_, i) => i < config!.developer_key!.length - 4 ? '*' : config!.developer_key![i]).join('') });
 
-      this.http = new HTTPClient(application_id, httpUrl, config.developer_key);
+      this.http = new HTTPClient(application_id, httpUrl, config.developer_key, runtimeID);
       this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl, config.developer_key);
       this.nats = await NATSClient.getInstance(application_id, natsUrl);
       
@@ -273,19 +273,19 @@ export class SDK {
   }
 }
 
-async function getEnvPort(): Promise<string> {
+async function getEnvConfig(): Promise<{port:string, runtimeID:string}> {
   try {
     // Try to find the configuration endpoint by testing different base paths
     const configUrl = await findConfigEndpoint();
-    const response = await fetchData<{runtimeID:string, port:string}>(configUrl);
+    const response = await fetchData<{port:string, runtimeID:string}>(configUrl);
     // console.log('Response:', response);
     // console.log('runtimeID: ', response.runtimeID);
     // console.log('applicationID: ', response.runtimeID.split('XmchX')[0]);
-    return response.port;
+    return {  port: response.port, runtimeID: response.runtimeID};
   } catch (error) {
     // console.log('No configured runtime ID:', error);
     // TODO: Use DevPort from SDK Config or default to 61888
-    return "61888";
+    return { port: "61888", runtimeID: ""};
   }
 }
 

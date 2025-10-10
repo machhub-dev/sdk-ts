@@ -19,39 +19,18 @@ export class HTTPService {
     private url: URL;
     private applicationID: string;
     private developerKey?: string;
+    private runtimeID?: string;
 
-    constructor(url: string, prefix: string, applicationID: string, developerKey?: string) {
+    constructor(url: string, prefix: string, applicationID: string, developerKey?: string, runtimeID?: string) {
         if (prefix == null) prefix = "";
         this.url = new URL(prefix, url);
         this.applicationID = "domains:" + applicationID
         this.developerKey = developerKey
+        this.runtimeID = runtimeID
     }
 
     public get request(): RequestParameters {
-        return new RequestParameters(this.url, this.applicationID, this.developerKey);
-    }
-
-    private addRuntimeHeaders(headers: Record<string, string> = {}): Record<string, string> {
-        // Add runtime ID from cookie if available (for hosted applications)
-        if (typeof document !== 'undefined') {
-            const runtimeID = this.getCookie('machhub_runtime_id');
-            if (runtimeID) {
-                headers['X-MachHub-Runtime-ID'] = runtimeID;
-            }
-        }
-
-        return headers;
-    }
-
-    private getCookie(name: string): string | null {
-        if (typeof document === 'undefined') return null;
-
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) {
-            return parts.pop()?.split(';').shift() || null;
-        }
-        return null;
+        return new RequestParameters(this.url, this.applicationID, this.developerKey, this.runtimeID);
     }
 }
 
@@ -59,18 +38,21 @@ class RequestParameters {
     private base: URL;
     private applicationID: string;
     private developerKey?: string;
+    private runtimeID?: string;
     public query?: Record<string, string>;
     public init?: RequestInit;
     public headers?: Record<string, string>;
 
-    constructor(base: URL, applicationID: string, developerKey?:string, query?: Record<string, string>) {
+    constructor(base: URL, applicationID: string, developerKey?: string, runtimeID?: string, query?: Record<string, string>) {
         this.base = base;
         this.applicationID = applicationID;
         this.developerKey = developerKey;
+        this.runtimeID = runtimeID;
         this.query = query;
         this.withDomain(); // Ensure withDomain() is called by default
         this.withAccessToken(); // Ensure withAccessToken() is called by default
         this.withDeveloperKey(); // Ensure withDeveloperKey() is called by default
+        this.withRuntimeID(); // Ensure withRuntimeID() is called by default
     }
 
     private withQuery(path: string, query?: Record<string, string>): URL {
@@ -167,6 +149,11 @@ class RequestParameters {
     public withAccessToken(): RequestParameters {
         const tkn = localStorage.getItem("x-machhub-auth-tkn");
         this.setHeader("Authorization", `Bearer ${tkn}`);
+        return this;
+    }
+
+    public withRuntimeID(): RequestParameters {
+        this.setHeader("X-Machhub-Runtime-Id", this.runtimeID ?? "");
         return this;
     }
 
