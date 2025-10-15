@@ -198,6 +198,12 @@ class RequestParameters {
         if (body) {
             if (body instanceof FormData) {
                 init.body = body;
+                // Remove Content-Type header if it exists, let browser set it for FormData
+                if (init.headers && typeof init.headers === 'object') {
+                    const headers = init.headers as Record<string, string>;
+                    delete headers['Content-Type'];
+                    delete headers['content-type'];
+                }
             } else {
                 init.body = JSON.stringify(body);
                 init.headers = {
