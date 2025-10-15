@@ -27,6 +27,7 @@ export class Collection {
     this.collectionName = collectionName;
   }
 
+
   filter(fieldName: string, operator: "=" | ">" | "<" | "<=" | ">=" | "!=", value: any): Collection {
     this.queryParams[`filter[${fieldName}][${operator}][${typeof value}]`] = value;
     return this;
@@ -68,9 +69,20 @@ export class Collection {
 
   async create(data: Record<string, any>): Promise<any> {
     try {
-      return await this.httpService.request.withJSON(data).post(this.collectionName);
+      const formData = new FormData();
+
+      for (const [key, value] of Object.entries(data)) {
+        if (value instanceof File) {
+          formData.append(key, value, value.name);
+          data[key] = value.name
+        } 
+      }
+      formData.append("record", JSON.stringify(data))
+      return await this.httpService.request
+        .withBody(formData)
+        .post(this.collectionName);
     } catch (error) {
-      throw new CollectionError('create', this.collectionName, error as Error);
+      throw new CollectionError("create", this.collectionName, error as Error);
     }
   }
 
