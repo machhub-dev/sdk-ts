@@ -119,21 +119,31 @@ export class NATSService {
                     return;
                 }
 
-                const data = JSON.parse(msg.data.toString()) as Record<string, any>;
-                const subjectParts = msg.subject.split(".");
-                if (subjectParts.length !== 4) {
-                    msg.respond(JSON.stringify({ error: "Invalid subject format" }));
-                    return;
-                }
+                try {
+                    const dataStr = Buffer.from(msg.data).toString('utf-8');
+                    const data = JSON.parse(dataStr) as Record<string, any>;
+                    const subjectParts = msg.subject.split(".");
+                    if (subjectParts.length !== 4) {
+                        msg.respond(JSON.stringify({ error: "Invalid subject format" }));
+                        return;
+                    }
 
-                const functionName = subjectParts[3];
-                this.executeFunction(functionName, data)
-                    .then((result) => {
-                        msg.respond(JSON.stringify(result));
-                    })
-                    .catch((e: any) => {
-                        msg.respond(JSON.stringify({ status: "failed", error: e.message }));
-                    });
+                    const functionName = subjectParts[3];
+                    this.executeFunction(functionName, data)
+                        .then((result) => {
+                            msg.respond(JSON.stringify(result));
+                        })
+                        .catch((e: any) => {
+                            console.log("Error executing function '" + functionName + "': ", e);
+                            msg.respond(JSON.stringify({ status: "failed", error: e.message }));
+                        });
+                } catch (parseError: any) {
+                    console.error("Error parsing function execution message:", parseError);
+                    msg.respond(JSON.stringify({ 
+                        status: "failed", 
+                        error: `Failed to parse message: ${parseError.message}` 
+                    }));
+                }
             },
         });
         if (sub) this.subscriptions.push(sub);
@@ -223,16 +233,37 @@ export class NATSService {
     }
 
     /**
-     * Parses a message buffer into a JSON object.
+     * Parses a message buffer into a JSON object or returns raw data.
      * @param message {Uint8Array} The message buffer.
-     * @returns {unknown} The parsed message.
+     * @returns {unknown} The parsed message (JSON object) or the raw string if parsing fails.
      */
     private parseMessage(message: Uint8Array): unknown {
         try {
-            return JSON.parse(Buffer.from(message).toString());
+            const messageStr = Buffer.from(message).toString('utf-8');
+            // Check if the message is empty
+            if (!messageStr || messageStr.trim().length === 0) {
+                NATSService.log("Received empty message");
+                return null;
+            }
+            
+            // Try to parse as JSON
+            return JSON.parse(messageStr);
         } catch (error) {
+            // If JSON parsing fails, check if it's binary data or non-JSON content
+            const messageStr = Buffer.from(message).toString('utf-8');
+            
+            // Check if it looks like binary data (contains non-printable characters)
+            const isBinary = message.some(byte => byte < 32 && byte !== 9 && byte !== 10 && byte !== 13);
+            
+            if (isBinary) {
+                NATSService.log("Received binary data, returning as Uint8Array");
+                return message; // Return raw binary data
+            }
+            
+            // If it's a plain string (not JSON), return as is
+            NATSService.log("Failed to parse message as JSON, returning as string:", messageStr.substring(0, 100));
             console.error("Error parsing message:", error);
-            return null;
+            return messageStr;
         }
     }
 
