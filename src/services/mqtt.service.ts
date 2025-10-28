@@ -102,7 +102,7 @@ export class MQTTService {
         this.client.on('message', (topic: string, message: Buffer) => {
             for (const subscribedTopic of this.subscribedTopics) {
                 if (topic === subscribedTopic.topic) {
-                    const parsedMessage = this.parseMessage(message);
+                    const parsedMessage = this.parseMessage(message, topic);
                     subscribedTopic.handler(parsedMessage);
                     break;
                 }
@@ -110,12 +110,12 @@ export class MQTTService {
         });
     }
 
-    private parseMessage(message: Buffer): unknown {
+    private parseMessage(message: Buffer, topic: string): unknown {
         try {
             return JSON.parse(message.toString());
         } catch (error) {
-            console.error("Error parsing message:", error);
-            return null;
+            console.warn("Failed to parse message as JSON '" + topic + "' : ", message.toString());
+            return message.toString();
         }
     }
 }
