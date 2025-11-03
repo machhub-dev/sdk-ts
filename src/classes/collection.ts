@@ -49,11 +49,7 @@ export class Collection {
   }
 
   expand(fields: string | string[]): Collection {
-    if (Array.isArray(fields)) {
-      this.queryParams.expand = fields.join(",");
-    }else {
-      this.queryParams.expand = fields;
-    }
+    this.queryParams.expand = Array.isArray(fields) ? fields.join(",") : fields;
     return this;
   }
 
@@ -62,12 +58,15 @@ export class Collection {
       if (this.queryParams.expand) {
         const expandFields = this.queryParams.expand;
         const query = `SELECT * FROM \`${this.collectionName}\` FETCH ${expandFields};`
-        return await this.httpService.request.post(this.collectionName + "/query", undefined, { query });
+        return await this.runQuery(query)
       }
       return await this.httpService.request.get(this.collectionName + "/all", this.queryParams);
     } catch (error) {
       throw new CollectionError('getAll', this.collectionName, error as Error);
     }
+  }
+  private async runQuery(query: string): Promise<any[]> {
+    return await this.httpService.request.post(this.collectionName + "/query", undefined, { query });
   }
 
   async getOne(id: string): Promise<any> {
