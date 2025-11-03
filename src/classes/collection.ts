@@ -53,6 +53,16 @@ export class Collection {
     return this;
   }
 
+  resetQuery(): Collection {
+    this.queryParams = {};
+    return this;
+  }
+
+  async first(): Promise<any> {
+    const results = await this.limit(1).getAll();
+    return results[0] ?? null
+  }
+  
   async getAll(): Promise<any[]> {
     try {
       if (this.queryParams.expand) {
