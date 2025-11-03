@@ -48,8 +48,22 @@ export class Collection {
     return this;
   }
 
+  expand(fields: string | string[]): Collection {
+    if (Array.isArray(fields)) {
+      this.queryParams.expand = fields.join(",");
+    }else {
+      this.queryParams.expand = fields;
+    }
+    return this;
+  }
+
   async getAll(): Promise<any[]> {
     try {
+      if (this.queryParams.expand) {
+        const expandFields = this.queryParams.expand;
+        const query = `SELECT * FROM \`${this.collectionName}\` FETCH ${expandFields};`
+        return await this.httpService.request.post(this.collectionName + "/query", undefined, { query });
+      }
       return await this.httpService.request.get(this.collectionName + "/all", this.queryParams);
     } catch (error) {
       throw new CollectionError('getAll', this.collectionName, error as Error);
