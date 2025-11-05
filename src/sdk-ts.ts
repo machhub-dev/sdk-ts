@@ -176,16 +176,19 @@ export class SDK {
       const {port, runtimeID} = await getEnvConfig();
       console.log("Port:", port);
 
+      // Determine the hostname - use window.location.hostname in browser, otherwise fallback to localhost
+      const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+
       if (!config.httpUrl) {
-        config.httpUrl = "http://localhost:" + port;
+        config.httpUrl = `http://${hostname}:${port}`;
       }
 
       if (!config.mqttUrl) {
-        config.mqttUrl = "ws://localhost:" + port + "/mqtt";
+        config.mqttUrl = `ws://${hostname}:${port}/mqtt`;
       }
 
       if (!config.natsUrl) {
-        config.natsUrl = "ws://localhost:" + port + "/nats";
+        config.natsUrl = `ws://${hostname}:${port}/nats`;
       }
 
       const { application_id, httpUrl, mqttUrl, natsUrl } = config;
