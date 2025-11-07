@@ -52,10 +52,15 @@ export class Collection {
     this.queryParams.expand = Array.isArray(fields) ? fields.join(",") : fields;
     return this;
   }
+  
+  private applyOptions(options?: Record<string, any>) {
+    if (!options) return;
 
-  resetQuery(): Collection {
-    this.queryParams = {};
-    return this;
+    for (const [key, value] of Object.entries(options)) {
+      if (value !== undefined && value !== null) {
+        this.queryParams[key] = value;
+      }
+    }
   }
 
   async first(): Promise<any> {
@@ -63,20 +68,16 @@ export class Collection {
     return results[0] ?? null
   }
   
-  async getAll(): Promise<any[]> {
+  async getAll(options?: { expand?: string | string[] }): Promise<any[]> {
     try {
-      if (this.queryParams.expand) {
-        const expandFields = this.queryParams.expand;
-        const query = `SELECT * FROM \`${this.collectionName}\` FETCH ${expandFields};`
-        return await this.runQuery(query)
+      this.applyOptions(options)
+      if (options?.expand) {
+        this.queryParams.expand = Array.isArray(options.expand) ? options.expand.join() : options.expand
       }
       return await this.httpService.request.get(this.collectionName + "/all", this.queryParams);
     } catch (error) {
       throw new CollectionError('getAll', this.collectionName, error as Error);
     }
-  }
-  private async runQuery(query: string): Promise<any[]> {
-    return await this.httpService.request.post(this.collectionName + "/query", undefined, { query });
   }
 
   async getOne(id: string): Promise<any> {
