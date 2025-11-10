@@ -19,7 +19,7 @@ class HTTPClient {
    * @param applicationID The ID for your application (required)
    * @param httpUrl The base URL for HTTP connection (default = http://localhost:6188)
    */
-  constructor(applicationID: string, httpUrl:string, developerKey?: string, runtimeID?: string) {
+  constructor(applicationID: string, httpUrl: string, developerKey?: string, runtimeID?: string) {
     this.httpService = new HTTPService(httpUrl, MACHHUB_SDK_PATH, applicationID, developerKey, runtimeID);
   }
 
@@ -45,7 +45,7 @@ class MQTTClient {
    * @param applicationID The ID for your application
    * @param mqttUrl The base URL for MQTT connection (default = ws://localhost:180)
    */
-  static async getInstance(applicationID?: string, mqttUrl: string = "ws://localhost:180", developerKey? :string): Promise<MQTTClient> {
+  static async getInstance(applicationID?: string, mqttUrl: string = "ws://localhost:180", developerKey?: string): Promise<MQTTClient> {
     // if (!applicationID) {
     //   applicationID = process.env.APP_ID;
     //   if (!applicationID) {
@@ -172,33 +172,39 @@ export class SDK {
       if (!config.application_id) config = { application_id: "" }
       // console.log("Using application_id:", config.application_id);
 
-
-      const {port, runtimeID} = await getEnvConfig();
-      console.log("Port:", port);
+      const envCfg = await getEnvConfig();
+      // console.log("Environment Config:", envCfg);
 
       // Determine the hostname - use window.location.hostname in browser, otherwise fallback to localhost
       const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+      const secured = typeof window !== 'undefined' ? window.location.protocol === 'https:' : false;
+
+      let host = hostname
+      if (envCfg.hostingMode === 'port' || !envCfg.hostingMode) {
+        host += `:${envCfg.port}`;
+      } else if (envCfg.hostingMode === 'path') {
+        host += envCfg.pathHosted
+      }
 
       if (!config.httpUrl) {
-        config.httpUrl = `http://${hostname}:${port}`;
+        config.httpUrl = `${secured ? 'https' : 'http'}://${host}`;
       }
 
       if (!config.mqttUrl) {
-        config.mqttUrl = `ws://${hostname}:${port}/mqtt`;
+        config.mqttUrl = `${secured ? 'wss' : 'ws'}://${host}/mqtt`;
       }
 
       if (!config.natsUrl) {
-        config.natsUrl = `ws://${hostname}:${port}/nats`;
+        config.natsUrl = `${secured ? 'wss' : 'ws'}://${host}/nats`;
       }
-
       const { application_id, httpUrl, mqttUrl, natsUrl } = config;
 
       console.log("SDK Config:", { application_id, httpUrl, mqttUrl, natsUrl, developer_key: config.developer_key?.split('').map((_, i) => i < config!.developer_key!.length - 4 ? '*' : config!.developer_key![i]).join('') });
 
-      this.http = new HTTPClient(application_id, httpUrl, config.developer_key, runtimeID);
+      this.http = new HTTPClient(application_id, httpUrl, config.developer_key, envCfg.runtimeID);
       this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl, config.developer_key);
       this.nats = await NATSClient.getInstance(application_id, natsUrl);
-      
+
       this._historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
       this._tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
       this._function = new Function(this.http["httpService"], this.nats["natsService"]);
@@ -276,19 +282,25 @@ export class SDK {
   }
 }
 
-async function getEnvConfig(): Promise<{port:string, runtimeID:string}> {
+interface RUNTIME_CONFIG {
+  runtimeID: string;
+  port: string;
+  hostingMode?: 'port' | 'path';
+  pathHosted?: string;
+}
+
+async function getEnvConfig(): Promise<RUNTIME_CONFIG> {
   try {
     // Try to find the configuration endpoint by testing different base paths
     const configUrl = await findConfigEndpoint();
-    const response = await fetchData<{port:string, runtimeID:string}>(configUrl);
-    // console.log('Response:', response);
+    const response = await fetchData<RUNTIME_CONFIG>(configUrl);
     // console.log('runtimeID: ', response.runtimeID);
     // console.log('applicationID: ', response.runtimeID.split('XmchX')[0]);
-    return {  port: response.port, runtimeID: response.runtimeID};
+    return response;
   } catch (error) {
     // console.log('No configured runtime ID:', error);
     // TODO: Use DevPort from SDK Config or default to 61888
-    return { port: "61888", runtimeID: ""};
+    return { port: "61888", runtimeID: "" };
   }
 }
 
@@ -299,15 +311,15 @@ async function getEnvConfig(): Promise<{port:string, runtimeID:string}> {
 async function findConfigEndpoint(): Promise<string> {
   const origin = window.location.origin;
   const pathname = window.location.pathname;
-  
+
   // List of potential base paths to try, ordered by likelihood
   const basePaths = [
     // 1. Try origin directly (for port-based hosting like localhost:6190)
     origin,
-    
+
     // 2. Try current path segments for path-based hosting
     ...generatePathCandidates(pathname),
-    
+
     // 3. Try common root paths as fallback
     origin,
   ];
@@ -318,16 +330,16 @@ async function findConfigEndpoint(): Promise<string> {
   for (const basePath of uniqueBasePaths) {
     try {
       const configUrl = `${basePath}/_cfg`;
-      
+
       // Test if this endpoint returns valid JSON config by making a GET request
-      const testResponse = await fetch(configUrl, { 
+      const testResponse = await fetch(configUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
         },
         signal: AbortSignal.timeout(2000) // 2 second timeout
       });
-      
+
       if (testResponse.ok) {
         // Validate that the response is JSON and contains the expected 'port' field
         const contentType = testResponse.headers.get('content-type');
@@ -335,6 +347,7 @@ async function findConfigEndpoint(): Promise<string> {
           try {
             const testData = await testResponse.json();
             // Check if the response has the expected structure with a 'port' field
+            // TODO: Allow checks for path based hosting as well
             if (testData && typeof testData === 'object' && 'port' in testData) {
               // console.log(`Found config endpoint at: ${configUrl}`);
               return configUrl;
