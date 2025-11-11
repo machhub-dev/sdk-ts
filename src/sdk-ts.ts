@@ -337,7 +337,7 @@ async function findConfigEndpoint(): Promise<string> {
         headers: {
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(2000) // 2 second timeout
+        signal: AbortSignal.timeout(2000)
       });
 
       if (testResponse.ok) {
