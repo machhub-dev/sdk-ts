@@ -137,6 +137,19 @@ export class SDK {
   private _function: Function | null = null;
   private _flow: Flow | null = null;
   private _auth: Auth | null = null;
+  private applicationID: string = "";
+
+  /**
+   * Extracts the application ID from a runtime ID.
+   * Runtime ID format: {applicationID}XmchX{randomID}
+   * @param runtimeID The runtime ID to extract from
+   * @returns The extracted application ID, or empty string if invalid format
+   */
+  private extractApplicationIDFromRuntimeID(runtimeID: string): string {
+    if (!runtimeID) return "";
+    const parts = runtimeID.split('XmchX');
+    return parts.length > 0 ? parts[0] : "";
+  }
 
   /**
    * Initializes the SDK with the required clients.
@@ -167,13 +180,16 @@ export class SDK {
       // 1. Via application_id + URLs + developer key passed in config parameter
       // 2. Via development server - Set via Extension/ 
       //          API to get Config (All SDK URLs default to localhost with port from querying current window or 61888)
-
       if (config === undefined) config = { application_id: "" }
       if (!config.application_id) config = { application_id: "" }
-      // console.log("Using application_id:", config.application_id);
 
       const envCfg = await getEnvConfig();
-      // console.log("Environment Config:", envCfg);
+
+      // Extract application_id from runtimeID if not provided in config
+      const application_id = config.application_id || 
+                            this.extractApplicationIDFromRuntimeID(envCfg.runtimeID);
+      
+      this.applicationID = application_id;
 
       // Determine the hostname - use window.location.hostname in browser, otherwise fallback to localhost
       const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
@@ -197,19 +213,20 @@ export class SDK {
       if (!config.natsUrl) {
         config.natsUrl = `${secured ? 'wss' : 'ws'}://${host}/nats`;
       }
-      const { application_id, httpUrl, mqttUrl, natsUrl } = config;
+      
+      const { httpUrl, mqttUrl, natsUrl } = config;
 
-      console.log("SDK Config:", { application_id, httpUrl, mqttUrl, natsUrl, developer_key: config.developer_key?.split('').map((_, i) => i < config!.developer_key!.length - 4 ? '*' : config!.developer_key![i]).join('') });
+      console.log("SDK Config:", { application_id: this.applicationID, httpUrl, mqttUrl, natsUrl, developer_key: config.developer_key?.split('').map((_, i) => i < config!.developer_key!.length - 4 ? '*' : config!.developer_key![i]).join('') });
 
-      this.http = new HTTPClient(application_id, httpUrl, config.developer_key, envCfg.runtimeID);
-      this.mqtt = await MQTTClient.getInstance(application_id, mqttUrl, config.developer_key);
-      this.nats = await NATSClient.getInstance(application_id, natsUrl);
+      this.http = new HTTPClient(this.applicationID, httpUrl, config.developer_key, envCfg.runtimeID);
+      this.mqtt = await MQTTClient.getInstance(this.applicationID, mqttUrl, config.developer_key);
+      this.nats = await NATSClient.getInstance(this.applicationID, natsUrl);
 
       this._historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
       this._tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
       this._function = new Function(this.http["httpService"], this.nats["natsService"]);
       this._flow = new Flow(this.http["httpService"]);
-      this._auth = new Auth(this.http["httpService"]);
+      this._auth = new Auth(this.http["httpService"], this.applicationID);
     } catch (error: any) {
       console.error("Failed to initialize:", error);
       return false;

@@ -1,11 +1,21 @@
 import { HTTPService } from "../services/http.service.js";
+import { jwtDecode } from "jwt-decode";
 import { Action, ActionResponse, Feature, Group, LoginResponse, User, ValidateJWTResponse } from "../types/auth.models.js";
 
 export class Auth {
   private httpService: HTTPService;
+  private applicationID: string;
+  private readonly AUTH_TOKEN_KEY_PREFIX = "x-machhub-auth-tkn";
 
-  constructor(httpService: HTTPService) {
+  constructor(httpService: HTTPService, applicationID: string) {
     this.httpService = httpService;
+    this.applicationID = applicationID;
+  }
+
+  private getStorageKey(): string {
+    return this.applicationID
+      ? `${this.AUTH_TOKEN_KEY_PREFIX}-${this.applicationID}`
+      : this.AUTH_TOKEN_KEY_PREFIX;
   }
 
   public async login(username: string, password: string): Promise<LoginResponse | undefined> {
@@ -17,7 +27,8 @@ export class Auth {
       }).post("/auth/login");
 
       if (localStorage) {
-        localStorage.setItem("x-machhub-auth-tkn", res.tkn); // Set User JWT
+        // console.log("storage key:", this.getStorageKey());
+        localStorage.setItem(this.getStorageKey(), res.tkn); // Set User JWT
       } else {
         console.error("localStorage is not available. The program needs to be in a browser environment.");
       }
@@ -31,13 +42,34 @@ export class Auth {
     }
   }
 
-  public async validateJWT(token: string): Promise<ValidateJWTResponse>{
-    let res:ValidateJWTResponse = await this.httpService.request.withJSON({ token }).post("/auth/jwt/validate");
-    return res
+  public async validateJWT(token: string): Promise<ValidateJWTResponse> {
+    return await this.httpService.request.withJSON({ token }).post("/auth/jwt/validate");
   }
 
   public async logout() {
-    localStorage.removeItem("x-machhub-auth-tkn"); // Remove User JWT
+    localStorage.removeItem(this.getStorageKey());
+  }
+
+  public async getJWTData(): Promise<any> {
+    const token = localStorage.getItem(this.getStorageKey());
+    if (!token) {
+      throw new Error("No JWT token found in localStorage.");
+    }
+
+    return jwtDecode(token);
+  }
+
+  public async getCurrentUser(): Promise<User> {
+    return await this.httpService.request.get("/auth/me");
+  }
+
+  public async validateCurrentUser(): Promise<ValidateJWTResponse> {
+    const token = localStorage.getItem(this.getStorageKey());
+    if (!token) {
+      throw new Error("No JWT token found in localStorage.");
+    }
+
+    return await this.validateJWT("/auth/user/me");
   }
 
   public async checkAction(feature: string, scope: string): Promise<ActionResponse> {
