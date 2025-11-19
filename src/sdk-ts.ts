@@ -355,24 +355,26 @@ async function findConfigEndpoint(): Promise<string> {
           'Accept': 'application/json',
         },
         signal: AbortSignal.timeout(2000)
-      });
+      }).catch(() => {console.log("ERR"); return null}); // Catch fetch errors silently
 
-      if (testResponse.ok) {
-        // Validate that the response is JSON and contains the expected 'port' field
-        const contentType = testResponse.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          try {
-            const testData = await testResponse.json();
-            // Check if the response has the expected structure with a 'port' field
-            // TODO: Allow checks for path based hosting as well
-            if (testData && typeof testData === 'object' && 'port' in testData) {
-              // console.log(`Found config endpoint at: ${configUrl}`);
-              return configUrl;
-            }
-          } catch (jsonError) {
-            // Not valid JSON, continue to next candidate
-            continue;
+      if (!testResponse || !testResponse.ok) {
+        continue; // Skip to next candidate
+      }
+
+      // Validate that the response is JSON and contains the expected 'port' field
+      const contentType = testResponse.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const testData = await testResponse.json();
+          // Check if the response has the expected structure with a 'port' field
+          // TODO: Allow checks for path based hosting as well
+          if (testData && typeof testData === 'object' && 'port' in testData) {
+            // console.log(`Found config endpoint at: ${configUrl}`);
+            return configUrl;
           }
+        } catch (jsonError) {
+          // Not valid JSON, continue to next candidate
+          continue;
         }
       }
     } catch (error) {

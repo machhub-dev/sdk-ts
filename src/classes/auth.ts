@@ -69,7 +69,7 @@ export class Auth {
       throw new Error("No JWT token found in localStorage.");
     }
 
-    return await this.validateJWT("/auth/user/me");
+    return await this.validateJWT(token);
   }
 
   public async checkAction(feature: string, scope: string): Promise<ActionResponse> {
