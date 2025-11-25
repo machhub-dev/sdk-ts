@@ -148,9 +148,9 @@ class RequestParameters {
 
     public withAccessToken(): RequestParameters {
         const rawAppID = this.applicationID.replace("domains:", "");
-        const storageKey = rawAppID 
-          ? `x-machhub-auth-tkn-${rawAppID}`
-          : `x-machhub-auth-tkn`;
+        const storageKey = rawAppID
+            ? `x-machhub-auth-tkn-${rawAppID}`
+            : `x-machhub-auth-tkn`;
         const tkn = localStorage.getItem(storageKey);
         if (tkn) this.setHeader("Authorization", `Bearer ${tkn}`);
         return this;
@@ -266,6 +266,12 @@ class RequestParameters {
                 await response.text(),
             );
         }
-        return response.json() as ReturnType;
+
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json() as ReturnType;
+        } else {
+            return response.blob() as unknown as ReturnType;
+        }
     }
 }

@@ -52,7 +52,7 @@ export class Collection {
     this.queryParams.expand = Array.isArray(fields) ? fields.join(",") : fields;
     return this;
   }
-  
+
   private applyOptions(options?: Record<string, any>) {
     if (!options) return;
 
@@ -67,7 +67,7 @@ export class Collection {
     const results = await this.limit(1).getAll();
     return results[0] ?? null
   }
-  
+
   async getAll(options?: { expand?: string | string[] }): Promise<any[]> {
     try {
       this.applyOptions(options)
@@ -99,7 +99,7 @@ export class Collection {
         if (value instanceof File) {
           formData.append(key, value, value.name);
           data[key] = value.name
-        } 
+        }
       }
       formData.append("record", JSON.stringify(data))
       return await this.httpService.request
@@ -131,4 +131,17 @@ export class Collection {
       throw new CollectionError('delete', this.collectionName, error as Error);
     }
   }
+
+  async getFile(fileName: string, fieldName: string): Promise<Blob> {
+    try {
+      return await this.httpService.request.withJSON({
+        fileName,
+        collectionName: this.collectionName,
+        fieldName
+      }).patch("file");
+    } catch (error) {
+      throw new CollectionError('getFile', this.collectionName, error as Error);
+    }
+  }
+
 }
