@@ -115,7 +115,19 @@ export class Collection {
       throw new Error("ID must be provided");
     }
     try {
-      return await this.httpService.request.withJSON(data).put(id);
+      const formData = new FormData();
+
+      for (const [key, value] of Object.entries(data)) {
+        if (value instanceof File) {
+          formData.append(key, value, value.name);
+          data[key] = value.name;
+        }
+      }
+      formData.append("record", JSON.stringify(data));
+
+      return await this.httpService.request
+        .withBody(formData)
+        .put(id);
     } catch (error) {
       throw new CollectionError('update', this.collectionName, error as Error);
     }
