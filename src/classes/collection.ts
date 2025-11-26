@@ -28,7 +28,7 @@ export class Collection {
   }
 
 
-  filter(fieldName: string, operator: "=" | ">" | "<" | "<=" | ">=" | "!=", value: any): Collection {
+  filter(fieldName: string, operator: "=" | ">" | "<" | "<=" | ">=" | "!=" | "CONTAINS", value: any): Collection {
     this.queryParams[`filter[${fieldName}][${operator}][${typeof value}]`] = value;
     return this;
   }
@@ -77,6 +77,20 @@ export class Collection {
       return await this.httpService.request.get(this.collectionName + "/all", this.queryParams);
     } catch (error) {
       throw new CollectionError('getAll', this.collectionName, error as Error);
+    }
+  }
+
+  async count(options?: { filter?: any }): Promise<number> {
+    try {
+      this.applyOptions(options);
+
+      // Build query parameters for filters
+      const response: { count: number } = await this.httpService.request.get(`${this.collectionName}/count`, this.queryParams);
+
+      // Extract count from response
+      return response.count;
+    } catch (error) {
+      throw new CollectionError('count', this.collectionName, error as Error);
     }
   }
 
