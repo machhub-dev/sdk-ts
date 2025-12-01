@@ -28,7 +28,7 @@ export class Collection {
   }
 
 
-  filter(fieldName: string, operator: "=" | ">" | "<" | "<=" | ">=" | "!=" | "CONTAINS", value: any): Collection {
+  filter(fieldName: string, operator: "=" | ">" | "<" | "<=" | ">=" | "!=" | "CONTAINS" | "IN", value: any): Collection {
     this.queryParams[`filter[${fieldName}][${operator}][${typeof value}]`] = value;
     return this;
   }
