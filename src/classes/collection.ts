@@ -93,18 +93,26 @@ export class Collection {
       throw new CollectionError('count', this.collectionName, error as Error);
     }
   }
-
-  async getOne(id: string): Promise<any> {
+  
+  async getOne(id: string, options?: { expand?: string | string[] }): Promise<any> {
     if (!id) {
       throw new Error("ID must be provided");
     }
     try {
-      return await this.httpService.request.get(id);
+      const queryParams: any = {};
+
+      // Handle expand parameter
+      if (options?.expand) {
+        queryParams.expand = Array.isArray(options.expand)
+          ? options.expand.join(',')
+          : options.expand;
+      }
+
+      return await this.httpService.request.get(id, queryParams);
     } catch (error) {
       throw new CollectionError('getOne', this.collectionName, error as Error);
     }
   }
-
   async create(data: Record<string, any>): Promise<any> {
     try {
       const formData = new FormData();
