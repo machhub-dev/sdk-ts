@@ -1,5 +1,6 @@
 import { HTTPService } from "../services/http.service.js";
 import { MQTTService } from "../services/mqtt.service.js";
+import { Operator } from "../types/operator.models.js";
 
 export class CollectionError extends Error {
   public operation: string;
@@ -28,7 +29,7 @@ export class Collection {
   }
 
 
-  filter(fieldName: string, operator: "=" | ">" | "<" | "<=" | ">=" | "!=" | "CONTAINS" | "IN", value: any): Collection {
+  filter(fieldName: string, operator: Operator, value: any): Collection {
     this.queryParams[`filter[${fieldName}][${operator}][${typeof value}]`] = value;
     return this;
   }
