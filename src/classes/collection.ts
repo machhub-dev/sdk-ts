@@ -69,11 +69,14 @@ export class Collection {
     return results[0] ?? null
   }
 
-  async getAll(options?: { expand?: string | string[] }): Promise<any[]> {
+  async getAll(options?: { expand?: string | string[], fields?: string | string[] }): Promise<any[]> {
     try {
       this.applyOptions(options)
       if (options?.expand) {
-        this.queryParams.expand = Array.isArray(options.expand) ? options.expand.join() : options.expand
+        this.queryParams.expand = Array.isArray(options.expand) ? options.expand.join(",") : options.expand
+      }
+      if (options?.fields) {
+        this.queryParams.fields = Array.isArray(options.fields) ? options.fields.join(",") : options.fields
       }
       return await this.httpService.request.get(this.collectionName + "/all", this.queryParams);
     } catch (error) {
