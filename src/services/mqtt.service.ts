@@ -101,13 +101,50 @@ export class MQTTService {
 
         this.client.on('message', (topic: string, message: Buffer) => {
             for (const subscribedTopic of this.subscribedTopics) {
-                if (topic === subscribedTopic.topic) {
+                if (this.matchesTopic(subscribedTopic.topic, topic)) {
                     const parsedMessage = this.parseMessage(message, topic);
                     subscribedTopic.handler(parsedMessage);
                     break;
                 }
             }
         });
+    }
+
+    // Matches MQTT topic patterns with wildcards (+ for single level, # for multi-level)
+    private matchesTopic(pattern: string, topic: string): boolean {
+        // Handle exact match first for performance
+        if (pattern === topic) {
+            return true;
+        }
+
+        const patternParts = pattern.split('/');
+        const topicParts = topic.split('/');
+
+        let i = 0;
+        let j = 0;
+
+        while (i < patternParts.length && j < topicParts.length) {
+            const patternPart = patternParts[i];
+
+            if (patternPart === '#') {
+                // Multi-level wildcard matches everything from this point
+                return true;
+            } else if (patternPart === '+') {
+                // Single-level wildcard matches any single level
+                i++;
+                j++;
+            } else if (patternPart === topicParts[j]) {
+                // Exact match
+                i++;
+                j++;
+            } else {
+                // No match
+                return false;
+            }
+        }
+
+        // Check if we've consumed both pattern and topic completely
+        return i === patternParts.length && j === topicParts.length;
     }
 
     private parseMessage(message: Buffer, topic: string): unknown {
