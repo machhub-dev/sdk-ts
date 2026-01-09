@@ -2,7 +2,7 @@ import mqtt from 'mqtt';
 
 interface SubscribedTopic {
     topic: string;
-    handler: (message: unknown) => void;
+    handler: (message: unknown, topic?: string) => void;
 }
 
 export class MQTTService {
@@ -46,7 +46,7 @@ export class MQTTService {
     }
 
     // addTopicHandler Adds a topic and handler to the subscribed list
-    public addTopicHandler(topic: string, handler: (message: unknown) => void): void {
+    public addTopicHandler(topic: string, handler: (message: unknown, topic?: string) => void): void {
         try {
             this.subscribedTopics.push({ topic, handler });
             if (topic == "") return;
@@ -103,7 +103,7 @@ export class MQTTService {
             for (const subscribedTopic of this.subscribedTopics) {
                 if (this.matchesTopic(subscribedTopic.topic, topic)) {
                     const parsedMessage = this.parseMessage(message, topic);
-                    subscribedTopic.handler(parsedMessage);
+                    subscribedTopic.handler(parsedMessage, topic);
                     break;
                 }
             }

@@ -21,7 +21,7 @@ export class Tag {
     this.mqttService.publish(topic, data);
   }
 
-  async subscribe(topic: string, callback: (data: any) => void): Promise<void> {
+  async subscribe(topic: string, callback: (data: any, topic?: string) => void): Promise<void> {
     if (!this.mqttService) {
       throw new Error("MQTT service not connected");
     }
