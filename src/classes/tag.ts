@@ -27,4 +27,11 @@ export class Tag {
     }
     this.mqttService.addTopicHandler(topic, callback);
   }
+
+  async unsubscribe(topic: string): Promise<void> {
+    if (!this.mqttService) {
+      throw new Error("MQTT service not connected");
+    }
+    this.mqttService.removeTopicHandler(topic);
+  }
 }

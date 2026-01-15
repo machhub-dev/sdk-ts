@@ -48,6 +48,14 @@ export class MQTTService {
     // addTopicHandler Adds a topic and handler to the subscribed list
     public addTopicHandler(topic: string, handler: (message: unknown, topic?: string) => void): void {
         try {
+            // Check if already subscribed to this topic
+            const existingSubscription = this.subscribedTopics.find(sub => sub.topic === topic);
+            
+            if (existingSubscription) {
+                // If already subscribed, unsubscribe first to get retained message again
+                this.removeTopicHandler(topic);
+            }
+            
             this.subscribedTopics.push({ topic, handler });
             if (topic == "") return;
             // console.log("New Subscription Handler:", topic);
@@ -58,6 +66,25 @@ export class MQTTService {
             });
         } catch (e) {
             console.error(`Failed to subscribe to topic ${topic}:`, e);
+        }
+    }
+
+    // removeTopicHandler removes a specific topic handler and unsubscribes from the topic
+    public removeTopicHandler(topic: string): void {
+        try {
+            // Remove all handlers for this topic
+            this.subscribedTopics = this.subscribedTopics.filter(sub => sub.topic !== topic);
+            
+            // Unsubscribe from the MQTT topic
+            if (topic && topic !== "") {
+                this.client.unsubscribe(topic, (err?: unknown) => {
+                    if (err) {
+                        console.error(`Failed to unsubscribe from topic ${topic}:`, err);
+                    }
+                });
+            }
+        } catch (e) {
+            console.error(`Failed to unsubscribe from topic ${topic}:`, e);
         }
     }
 
