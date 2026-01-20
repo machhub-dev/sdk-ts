@@ -6,7 +6,7 @@
     "machhub",
     "intellogic technology"
   ],
-  "license": "MIT",
+  "license": "MPL-2.0",
   "author": "Intellogic Technology Sdn Bhd",
   "types": "dist/types.d.ts",
   "main": "dist/cjs/index.cjs",
