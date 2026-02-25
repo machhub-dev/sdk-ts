@@ -20,8 +20,6 @@
     "build": "npx tsc && npx tsc --module CommonJS --outDir dist/cjs"
   },
   "dependencies": {
-    "@nats-io/nats-core": "^3.0.2",
-    "@nats-io/transport-node": "^3.0.2",
     "jwt-decode": "^4.0.0",
     "mqtt": "^5.10.4",
     "safe-buffer": "^5.2.1",

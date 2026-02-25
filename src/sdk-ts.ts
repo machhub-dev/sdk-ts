@@ -1,10 +1,8 @@
 import { HTTPService } from "./services/http.service.js";
 import { MQTTService } from "./services/mqtt.service.js";
-import { NATSService } from "./services/nats.service.js";
 import { Collection } from "./classes/collection.js";
 import { Historian } from "./classes/historian.js";
 import { Tag } from "./classes/tag.js";
-import { Function } from "./classes/function.js";
 import { Flow } from "./classes/flow.js";
 import { Auth } from "./classes/auth.js";
 
@@ -78,60 +76,17 @@ class MQTTClient {
   }
 }
 
-// Core NATS client class
-class NATSClient {
-  private natsService: NATSService;
-  private static instance: NATSClient | undefined;
-
-  private constructor(natsService: NATSService) {
-    this.natsService = natsService;
-  }
-
-  /**
-   * Creates a new NATSClient instance
-   * @param applicationID The ID for your application
-   * @param natsUrl The base URL for NATS connection (default = ws://localhost:7500)
-   */
-  static async getInstance(applicationID?: string, natsUrl: string = "ws://localhost:7500"): Promise<NATSClient> {
-    if (!this.instance) {
-      const natsService = await NATSService.getInstance(natsUrl);
-      this.instance = new NATSClient(natsService);
-    }
-    return this.instance;
-  }
-
-  /**
-   * Subscribes to subject updates
-   * @param subject The subject to subscribe to
-   * @param callback The callback function for data updates
-   */
-  async subscribe(subject: string, callback: (data: any) => void): Promise<any> {
-    return this.natsService.addSubjectHandler(subject, callback);
-  }
-
-  /**
-   * Publishes a message to a specific subject
-   * @param subject The subject to publish to
-   * @param data The data to publish
-   */
-  async publish(subject: string, data: any): Promise<any> {
-    return this.natsService.publish(subject, data);
-  }
-}
-
 export interface SDKConfig {
   application_id: string;
   developer_key?: string;
   httpUrl?: string;
   mqttUrl?: string;
-  natsUrl?: string;
 }
 
 // SDK Class
 export class SDK {
   private http: HTTPClient | null = null;
   private mqtt: MQTTClient | null = null;
-  private nats: NATSClient | null = null;
   private _historian: Historian | null = null;
   private _tag: Tag | null = null;
   private _function: Function | null = null;
@@ -162,7 +117,6 @@ export class SDK {
    *   application_id: 'your-app-id',
    *   httpUrl: 'http://localhost:6188', // optional (default = http://localhost:6188)
    *   mqttUrl: 'ws://localhost:180',  // optional (default = ws://localhost:180)
-   *   natsUrl: 'ws://localhost:7500', // optional (default = ws://localhost:7500)
    * };
    *
    * const sdk = new SDK();
@@ -186,9 +140,9 @@ export class SDK {
       const envCfg = await getEnvConfig();
 
       // Extract application_id from runtimeID if not provided in config
-      const application_id = config.application_id || 
-                            this.extractApplicationIDFromRuntimeID(envCfg.runtimeID);
-      
+      const application_id = config.application_id ||
+        this.extractApplicationIDFromRuntimeID(envCfg.runtimeID);
+
       this.applicationID = application_id;
 
       // Determine the hostname - use window.location.hostname in browser, otherwise fallback to localhost
@@ -210,21 +164,15 @@ export class SDK {
         config.mqttUrl = `${secured ? 'wss' : 'ws'}://${host}/mqtt`;
       }
 
-      if (!config.natsUrl) {
-        config.natsUrl = `${secured ? 'wss' : 'ws'}://${host}/nats`;
-      }
-      
-      const { httpUrl, mqttUrl, natsUrl } = config;
+      const { httpUrl, mqttUrl } = config;
 
-      console.log("SDK Config:", { application_id: this.applicationID, httpUrl, mqttUrl, natsUrl, developer_key: config.developer_key?.split('').map((_, i) => i < config!.developer_key!.length - 4 ? '*' : config!.developer_key![i]).join('') });
+      console.log("SDK Config:", { application_id: this.applicationID, httpUrl, mqttUrl, developer_key: config.developer_key?.split('').map((_, i) => i < config!.developer_key!.length - 4 ? '*' : config!.developer_key![i]).join('') });
 
       this.http = new HTTPClient(this.applicationID, httpUrl, config.developer_key, envCfg.runtimeID);
       this.mqtt = await MQTTClient.getInstance(this.applicationID, mqttUrl, config.developer_key);
-      this.nats = await NATSClient.getInstance(this.applicationID, natsUrl);
 
       this._historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
       this._tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
-      this._function = new Function(this.http["httpService"], this.nats["natsService"]);
       this._flow = new Flow(this.http["httpService"]);
       this._auth = new Auth(this.http["httpService"], this.applicationID);
     } catch (error: any) {
@@ -355,7 +303,7 @@ async function findConfigEndpoint(): Promise<string> {
           'Accept': 'application/json',
         },
         signal: AbortSignal.timeout(2000)
-      }).catch(() => {console.log("ERR"); return null}); // Catch fetch errors silently
+      }).catch(() => { console.log("ERR"); return null }); // Catch fetch errors silently
 
       if (!testResponse || !testResponse.ok) {
         continue; // Skip to next candidate
