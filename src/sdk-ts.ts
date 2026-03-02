@@ -145,15 +145,18 @@ export class SDK {
 
       this.applicationID = application_id;
 
-      // Determine the hostname - use window.location.hostname in browser, otherwise fallback to localhost
+      // Determine the hostname - use window.location in browser, otherwise fallback to localhost
       const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
       const secured = typeof window !== 'undefined' ? window.location.protocol === 'https:' : false;
 
-      let host = hostname
+      let host = hostname;
       if (envCfg.hostingMode === 'port' || !envCfg.hostingMode) {
-        host += `:${envCfg.port}`;
+        // In browser, use window.location.host which includes the port only when non-standard
+        // (e.g. "localhost:6190" for local dev, "machhub.dev" when behind a reverse proxy on 443)
+        // In non-browser environments, fall back to hostname:envCfg.port
+        host = typeof window !== 'undefined' ? window.location.host : `${hostname}:${envCfg.port}`;
       } else if (envCfg.hostingMode === 'path') {
-        host += envCfg.pathHosted
+        host += envCfg.pathHosted;
       }
 
       if (!config.httpUrl) {
