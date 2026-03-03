@@ -5,6 +5,7 @@ import { Historian } from "./classes/historian.js";
 import { Tag } from "./classes/tag.js";
 import { Flow } from "./classes/flow.js";
 import { Auth } from "./classes/auth.js";
+import { Processes } from "./classes/processes.js";
 
 const MACHHUB_SDK_PATH = "machhub";
 
@@ -92,6 +93,7 @@ export class SDK {
   private _function: Function | null = null;
   private _flow: Flow | null = null;
   private _auth: Auth | null = null;
+  private _processes: Processes | null = null;
   private applicationID: string = "";
 
   /**
@@ -151,10 +153,14 @@ export class SDK {
 
       let host = hostname;
       if (envCfg.hostingMode === 'port' || !envCfg.hostingMode) {
-        // In browser, use window.location.host which includes the port only when non-standard
-        // (e.g. "localhost:6190" for local dev, "machhub.dev" when behind a reverse proxy on 443)
-        // In non-browser environments, fall back to hostname:envCfg.port
-        host = typeof window !== 'undefined' ? window.location.host : `${hostname}:${envCfg.port}`;
+        if (typeof window !== 'undefined' && envCfg.port !== '61888') {
+          // Behind a reverse proxy (e.g. Caddy on :443): use window.location.host which correctly
+          // omits the internal port (e.g. "machhub.dev" instead of "machhub.dev:6190")
+          host = window.location.host;
+        } else {
+          // Dev server (default port 61888) or non-browser: use explicit hostname:port
+          host = `${hostname}:${envCfg.port}`;
+        }
       } else if (envCfg.hostingMode === 'path') {
         host += envCfg.pathHosted;
       }
@@ -178,6 +184,7 @@ export class SDK {
       this._tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
       this._flow = new Flow(this.http["httpService"]);
       this._auth = new Auth(this.http["httpService"], this.applicationID);
+      this._processes = new Processes(this.http["httpService"]);
     } catch (error: any) {
       console.error("Failed to initialize:", error);
       return false;
@@ -237,6 +244,16 @@ export class SDK {
   }
 
   /**
+   * Getter for `processes`. Ensures `processes` is accessed only after initialization.
+   */
+  public get processes(): Processes {
+    if (!this._processes) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing `processes`.");
+    }
+    return this._processes;
+  }
+
+  /**
    * Creates a collection instance to interact with the specified table/collection.
    * Throws an error if the SDK is not initialized.
    * @param collectionName {string} The collection/table name.
@@ -261,8 +278,9 @@ async function getEnvConfig(): Promise<RUNTIME_CONFIG> {
   try {
     // Try to find the configuration endpoint by testing different base paths
     const configUrl = await findConfigEndpoint();
+    // console.log(`Fetching runtime configuration from: ${configUrl}`);
     const response = await fetchData<RUNTIME_CONFIG>(configUrl);
-    // console.log('runtimeID: ', response.runtimeID);
+    // console.log('response: ', response);
     // console.log('applicationID: ', response.runtimeID.split('XmchX')[0]);
     return response;
   } catch (error) {
