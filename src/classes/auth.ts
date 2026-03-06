@@ -7,6 +7,9 @@ export class Auth {
   private applicationID: string;
   private readonly AUTH_TOKEN_KEY_PREFIX = "x-machhub-auth-tkn";
 
+  // In-memory fallback for environments without localStorage (e.g. Node.js)
+  private static memoryStore: Map<string, string> = new Map();
+
   constructor(httpService: HTTPService, applicationID: string) {
     this.httpService = httpService;
     this.applicationID = applicationID;
@@ -18,26 +21,32 @@ export class Auth {
       : this.AUTH_TOKEN_KEY_PREFIX;
   }
 
+  private storageGet(key: string): string | null {
+    if (typeof localStorage !== 'undefined') return localStorage.getItem(key);
+    return Auth.memoryStore.get(key) ?? null;
+  }
+
+  private storageSet(key: string, value: string): void {
+    if (typeof localStorage !== 'undefined') { localStorage.setItem(key, value); return; }
+    Auth.memoryStore.set(key, value);
+  }
+
+  private storageRemove(key: string): void {
+    if (typeof localStorage !== 'undefined') { localStorage.removeItem(key); return; }
+    Auth.memoryStore.delete(key);
+  }
+
   public async login(username: string, password: string): Promise<LoginResponse | undefined> {
-    let res: LoginResponse
     try {
-      res = await this.httpService.request.withJSON({
+      const res: LoginResponse = await this.httpService.request.withJSON({
         username: username,
         password: password,
       }).post("/auth/login");
 
-      if (localStorage) {
-        // console.log("storage key:", this.getStorageKey());
-        localStorage.setItem(this.getStorageKey(), res.tkn); // Set User JWT
-      } else {
-        console.error("localStorage is not available. The program needs to be in a browser environment.");
-      }
-      return res
+      this.storageSet(this.getStorageKey(), res.tkn);
+      return res;
     }
     catch (e: unknown) {
-      if ((e as Error).message == "localStorage is not defined") {
-        throw new Error("Login failed: localStorage is not available. The program needs to be in a browser environment.");
-      }
       throw new Error("Login failed: " + (e as Error).message);
     }
   }
@@ -47,13 +56,13 @@ export class Auth {
   }
 
   public async logout() {
-    localStorage.removeItem(this.getStorageKey());
+    this.storageRemove(this.getStorageKey());
   }
 
   public async getJWTData(): Promise<any> {
-    const token = localStorage.getItem(this.getStorageKey());
+    const token = this.storageGet(this.getStorageKey());
     if (!token) {
-      throw new Error("No JWT token found in localStorage.");
+      throw new Error("No JWT token found in storage.");
     }
 
     return jwtDecode(token);
@@ -64,9 +73,9 @@ export class Auth {
   }
 
   public async validateCurrentUser(): Promise<ValidateJWTResponse> {
-    const token = localStorage.getItem(this.getStorageKey());
+    const token = this.storageGet(this.getStorageKey());
     if (!token) {
-      throw new Error("No JWT token found in localStorage.");
+      throw new Error("No JWT token found in storage.");
     }
 
     return await this.validateJWT(token);
