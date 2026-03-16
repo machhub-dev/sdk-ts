@@ -81,9 +81,9 @@ export class Auth {
     return await this.validateJWT(token);
   }
 
-  public async checkAction(feature: string, scope: string): Promise<ActionResponse> {
+  public async checkAction(feature: string): Promise<ActionResponse> {
     try {
-      const res: ActionResponse = await this.httpService.request.get(`/auth/permission/action/feature/${feature}/scope/${scope}`);
+      const res: ActionResponse = await this.httpService.request.get(`/auth/permission/action/feature/${feature}`);
       return res
     }
     catch (e: unknown) {
@@ -91,9 +91,9 @@ export class Auth {
     }
   }
 
-  public async checkPermission(feature: string, scope: string, action: Action): Promise<ActionResponse> {
+  public async checkPermission(feature: string, action: string): Promise<ActionResponse> {
     try {
-      const res: ActionResponse = await this.httpService.request.get(`/auth/permission/check/feature/${feature}/scope/${scope}/action/${action}`);
+      const res: ActionResponse = await this.httpService.request.get(`/auth/permission/check/feature/${feature}/action/${action}`);
       return res
     }
     catch (e: unknown) {

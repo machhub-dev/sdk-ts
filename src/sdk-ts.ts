@@ -324,7 +324,7 @@ async function findConfigEndpoint(): Promise<string> {
           'Accept': 'application/json',
         },
         signal: AbortSignal.timeout(2000)
-      }).catch(() => { console.log("ERR"); return null }); // Catch fetch errors silently
+      }).catch(() => null); // Catch fetch errors silently
 
       if (!testResponse || !testResponse.ok) {
         continue; // Skip to next candidate
