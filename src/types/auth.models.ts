@@ -154,4 +154,4 @@ export interface ActionResponse extends BaseResponse {
 }
 
 export type Action = "read" | "read-write" 
-export type Scope = "self" |  "domain" | "all"| "nil" 
+export type Scope = "self" | "domain" | "all" | "nil" | "user-defined" 

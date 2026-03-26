@@ -1,6 +1,6 @@
 import { HTTPService } from "../services/http.service.js";
 import { jwtDecode } from "jwt-decode";
-import { Action, ActionResponse, Feature, Group, LoginResponse, User, ValidateJWTResponse } from "../types/auth.models.js";
+import { Action, ActionResponse, Feature, Group, LoginResponse, PermissionResponse, User, ValidateJWTResponse } from "../types/auth.models.js";
 
 export class Auth {
   private httpService: HTTPService;
@@ -91,9 +91,9 @@ export class Auth {
     }
   }
 
-  public async checkPermission(feature: string, action: string): Promise<ActionResponse> {
+  public async checkPermission(feature: string, action: string): Promise<PermissionResponse> {
     try {
-      const res: ActionResponse = await this.httpService.request.get(`/auth/permission/check/feature/${feature}/action/${action}`);
+      const res: PermissionResponse = await this.httpService.request.get(`/auth/permission/check/feature/${feature}/action/${action}`);
       return res
     }
     catch (e: unknown) {
