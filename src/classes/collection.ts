@@ -122,7 +122,7 @@ export class Collection {
       const formData = new FormData();
 
       for (const [key, value] of Object.entries(data)) {
-        if (value instanceof File) {
+        if (typeof File !== 'undefined' && value instanceof File) {
           formData.append(key, value, value.name);
           data[key] = value.name
         }
@@ -144,7 +144,7 @@ export class Collection {
       const formData = new FormData();
 
       for (const [key, value] of Object.entries(data)) {
-        if (value instanceof File) {
+        if (typeof File !== 'undefined' && value instanceof File) {
           formData.append(key, value, value.name);
           data[key] = value.name;
         }
