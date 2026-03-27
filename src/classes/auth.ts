@@ -22,17 +22,17 @@ export class Auth {
   }
 
   private storageGet(key: string): string | null {
-    if (typeof localStorage !== 'undefined') return localStorage.getItem(key);
+    if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') return localStorage.getItem(key);
     return Auth.memoryStore.get(key) ?? null;
   }
 
   private storageSet(key: string, value: string): void {
-    if (typeof localStorage !== 'undefined') { localStorage.setItem(key, value); return; }
+    if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') { localStorage.setItem(key, value); return; }
     Auth.memoryStore.set(key, value);
   }
 
   private storageRemove(key: string): void {
-    if (typeof localStorage !== 'undefined') { localStorage.removeItem(key); return; }
+    if (typeof localStorage !== 'undefined' && typeof localStorage.removeItem === 'function') { localStorage.removeItem(key); return; }
     Auth.memoryStore.delete(key);
   }
 

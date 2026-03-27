@@ -147,7 +147,7 @@ class RequestParameters {
     }
 
     public withAccessToken(): RequestParameters {
-        if (typeof localStorage === 'undefined') return this;
+        if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') return this;
         const rawAppID = this.applicationID.replace("domains:", "");
         const storageKey = rawAppID
             ? `x-machhub-auth-tkn-${rawAppID}`
