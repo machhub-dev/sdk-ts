@@ -170,12 +170,13 @@ export class Collection {
     }
   }
 
-  async getFile(fileName: string, fieldName: string): Promise<Blob> {
+  async getFile(fileName: string, fieldName: string, recordID: string): Promise<Blob> {
     try {
       return await this.httpService.request.withJSON({
         fileName,
         collectionName: this.collectionName,
-        fieldName
+        fieldName,
+        recordID
       }).patch("file");
     } catch (error) {
       throw new CollectionError('getFile', this.collectionName, error as Error);
