@@ -150,8 +150,8 @@ export function machhubPermissions(): Permission[]{
 }
 
 export interface ActionResponse extends BaseResponse {
-    action: "read" | "read-write" | ""
+	actions: string[]
 }
 
-export type Action = "read" | "read-write" 
-export type Scope = "self" | "domain" | "all" | "nil" | "user-defined" 
+export type Action = string
+export type Scope = "self" | "domain" | "all" | "nil" | string

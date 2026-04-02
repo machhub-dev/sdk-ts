@@ -81,23 +81,43 @@ export class Auth {
     return await this.validateJWT(token);
   }
 
-  public async checkAction(feature: string): Promise<ActionResponse> {
+  public async checkAction(feature: string, scope: string): Promise<ActionResponse> {
     try {
-      const res: ActionResponse = await this.httpService.request.get(`/auth/permission/action/feature/${feature}`);
+      const encodedFeature = encodeURIComponent(feature);
+      const encodedScope = encodeURIComponent(scope);
+      const res: ActionResponse = await this.httpService.request.get(`/auth/permission/action/feature/${encodedFeature}/scope/${encodedScope}`);
       return res
     }
     catch (e: unknown) {
-      throw new Error("failed to checkAction : " + (e as Error).message);
+      // Backward compatibility for older API versions.
+      try {
+        const encodedFeature = encodeURIComponent(feature);
+        const res: ActionResponse = await this.httpService.request.get(`/auth/permission/action/feature/${encodedFeature}`);
+        return res;
+      } catch {
+        throw new Error("failed to checkAction : " + (e as Error).message);
+      }
     }
   }
 
-  public async checkPermission(feature: string, action: string): Promise<PermissionResponse> {
+  public async checkPermission(feature: string, action: string, scope: string): Promise<PermissionResponse> {
     try {
-      const res: PermissionResponse = await this.httpService.request.get(`/auth/permission/check/feature/${feature}/action/${action}`);
+      const encodedFeature = encodeURIComponent(feature);
+      const encodedScope = encodeURIComponent(scope);
+      const encodedAction = encodeURIComponent(action);
+      const res: PermissionResponse = await this.httpService.request.get(`/auth/permission/check/feature/${encodedFeature}/scope/${encodedScope}/action/${encodedAction}`);
       return res
     }
     catch (e: unknown) {
-      throw new Error("failed to checkPermission : " + (e as Error).message);
+      // Backward compatibility for older API versions.
+      try {
+        const encodedFeature = encodeURIComponent(feature);
+        const encodedAction = encodeURIComponent(action);
+        const res: PermissionResponse = await this.httpService.request.get(`/auth/permission/check/feature/${encodedFeature}/action/${encodedAction}`);
+        return res;
+      } catch {
+        throw new Error("failed to checkPermission : " + (e as Error).message);
+      }
     }
   }
 
