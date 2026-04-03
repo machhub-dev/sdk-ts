@@ -161,4 +161,9 @@ export class Auth {
       group_id, permissions
     }).post("/auth/permission");
   }
+
+  public async getPermissions(): Promise<Feature[]> {
+    const res: {permissions: Feature[]} = await this.httpService.request.get("/auth/permission");
+    return res.permissions ?? [];
+  }
 }
