@@ -5,4 +5,5 @@ export type { LoginResponse, PermissionResponse, User, Group, Feature, Permissio
 export type { Operator } from './types/operator.models.js';
 export type { BaseResponse } from './types/response.models.js';
 export type { RecordID } from './types/recordID.models.js';
+export { StringToRecordID, RecordIDToString, emptyRecordID } from './types/recordID.models.js';
 export type { HistorizedData } from './types/tag.models.js';
