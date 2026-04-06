@@ -3,7 +3,6 @@ import { MQTTService } from "./services/mqtt.service.js";
 import { Collection } from "./classes/collection.js";
 import { Historian } from "./classes/historian.js";
 import { Tag } from "./classes/tag.js";
-import { Flow } from "./classes/flow.js";
 import { Auth } from "./classes/auth.js";
 import { Processes } from "./classes/processes.js";
 
@@ -91,7 +90,6 @@ export class SDK {
   private _historian: Historian | null = null;
   private _tag: Tag | null = null;
   private _function: Function | null = null;
-  private _flow: Flow | null = null;
   private _auth: Auth | null = null;
   private _processes: Processes | null = null;
   private applicationID: string = "";
@@ -182,7 +180,6 @@ export class SDK {
 
       this._historian = new Historian(this.http["httpService"], this.mqtt["mqttService"]);
       this._tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
-      this._flow = new Flow(this.http["httpService"]);
       this._auth = new Auth(this.http["httpService"], this.applicationID);
       this._processes = new Processes(this.http["httpService"]);
     } catch (error: any) {
@@ -231,16 +228,6 @@ export class SDK {
       throw new Error("SDK is not initialized. Call `Initialize` before accessing `function`.");
     }
     return this._function;
-  }
-
-  /**
-   * Getter for `flow`. Ensures `flow` is accessed only after initialization.
-   */
-  public get flow(): Flow {
-    if (!this._flow) {
-      throw new Error("SDK is not initialized. Call `Initialize` before accessing `flow`.");
-    }
-    return this._flow;
   }
 
   /**
