@@ -84,14 +84,9 @@ export class Collection {
     }
   }
 
-  async count(options?: { filter?: any }): Promise<number> {
+  async count(): Promise<number> {
     try {
-      this.applyOptions(options);
-
-      // Build query parameters for filters
       const response: { count: number } = await this.httpService.request.get(`${this.collectionName}/count`, this.queryParams);
-
-      // Extract count from response
       return response.count;
     } catch (error) {
       throw new CollectionError('count', this.collectionName, error as Error);
