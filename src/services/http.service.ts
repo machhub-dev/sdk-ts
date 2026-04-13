@@ -56,7 +56,7 @@ class RequestParameters {
     }
 
     private withQuery(path: string, query?: Record<string, string>): URL {
-        const newPath = [this.base.pathname, path].map(pathPart => pathPart.replace(/(^\/|\/$)/g, "")).join("/");
+        const newPath = "/" + [this.base.pathname, path].map(pathPart => pathPart.replace(/(^\/|\/$)/g, "")).join("/");
         const newURL = new URL(newPath, this.base);
 
         for (const key in query) {

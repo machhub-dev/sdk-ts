@@ -138,7 +138,6 @@ export class SDK {
       if (!config.application_id) config = { application_id: "" }
 
       const envCfg = await getEnvConfig();
-
       // Extract application_id from runtimeID if not provided in config
       const application_id = config.application_id ||
         this.extractApplicationIDFromRuntimeID(envCfg.runtimeID);
@@ -164,7 +163,8 @@ export class SDK {
       }
 
       if (!config.httpUrl) {
-        config.httpUrl = `${secured ? 'https' : 'http'}://${host}`;
+        const httpHost = envCfg.hostingMode === 'path' ? `${host}/` : host;
+        config.httpUrl = `${secured ? 'https' : 'http'}://${httpHost}`;
       }
 
       if (!config.mqttUrl) {
