@@ -231,6 +231,22 @@ class RequestParameters {
     }
 
 
+    public async postAsBlob(path: string, query?: Record<string, string>): Promise<Blob> {
+        const init: RequestInit = this.parseInit("POST") || {};
+
+        const response = await fetch(this.withQuery(path, query), init);
+
+        if (!response.ok) {
+            throw new HTTPException(
+                response.status,
+                response.statusText,
+                await response.text(),
+            );
+        }
+        return response.blob();
+    }
+
+
     public async put<ReturnType>(path: string, query?: Record<string, string>): Promise<ReturnType> {
         const response = await fetch(this.withQuery(path, query), this.parseInit("PUT"));
 
