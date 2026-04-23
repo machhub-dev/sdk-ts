@@ -96,7 +96,10 @@ export class MQTTService {
     // Publishes a message to a specific topic
     public publish(topic: string, message: unknown): boolean {
         try {
-            const payload = JSON.stringify(message);
+
+                    const payload = typeof message === 'object' && message !== null
+            ? JSON.stringify(message)
+            : String(message);
             // console.log("Publishing to", topic, "with payload:", payload);
 
             this.client.publish(topic, payload, {
