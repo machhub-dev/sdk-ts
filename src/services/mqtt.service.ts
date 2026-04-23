@@ -15,7 +15,7 @@ export class MQTTService {
         this.url = url;
     }
 
-    static async getInstance(url: string = "ws://localhost:180", developerKey?:string): Promise<MQTTService> {
+    static async getInstance(url: string = "ws://localhost:180", developerKey?: string): Promise<MQTTService> {
         if (!this.instance || !this.instance.client) {
             this.instance = new MQTTService(url);
 
@@ -40,7 +40,7 @@ export class MQTTService {
     // Method to reset the instance
     public static resetInstance(): void {
         if (this.instance) {
-            this.instance.client.end(); 
+            this.instance.client.end();
             this.instance = undefined;
         }
     }
@@ -50,12 +50,12 @@ export class MQTTService {
         try {
             // Check if already subscribed to this topic
             const existingSubscription = this.subscribedTopics.find(sub => sub.topic === topic);
-            
+
             if (existingSubscription) {
                 // If already subscribed, unsubscribe first to get retained message again
                 this.removeTopicHandler(topic);
             }
-            
+
             this.subscribedTopics.push({ topic, handler });
             if (topic == "") return;
             // console.log("New Subscription Handler:", topic);
@@ -74,7 +74,7 @@ export class MQTTService {
         try {
             // Remove all handlers for this topic
             this.subscribedTopics = this.subscribedTopics.filter(sub => sub.topic !== topic);
-            
+
             // Unsubscribe from the MQTT topic
             if (topic && topic !== "") {
                 this.client.unsubscribe(topic, (err?: unknown) => {
@@ -97,9 +97,9 @@ export class MQTTService {
     public publish(topic: string, message: unknown): boolean {
         try {
 
-                    const payload = typeof message === 'object' && message !== null
-            ? JSON.stringify(message)
-            : String(message);
+            const payload = typeof message === 'object' && message !== null
+                ? JSON.stringify(message)
+                : String(message);
             // console.log("Publishing to", topic, "with payload:", payload);
 
             this.client.publish(topic, payload, {
