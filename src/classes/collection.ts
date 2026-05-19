@@ -119,7 +119,19 @@ export class Collection {
       for (const [key, value] of Object.entries(data)) {
         if (typeof File !== 'undefined' && value instanceof File) {
           formData.append(key, value, value.name);
-          data[key] = value.name
+          data[key] = value.name;
+        } else if (
+          typeof File !== 'undefined' &&
+          Array.isArray(value) &&
+          value.length > 0 &&
+          value[0] instanceof File
+        ) {
+          const names: string[] = [];
+          for (const file of value as File[]) {
+            formData.append(key, file, file.name);
+            names.push(file.name);
+          }
+          data[key] = names;
         }
       }
       formData.append("record", JSON.stringify(data))
@@ -142,6 +154,22 @@ export class Collection {
         if (typeof File !== 'undefined' && value instanceof File) {
           formData.append(key, value, value.name);
           data[key] = value.name;
+        } else if (
+          typeof File !== 'undefined' &&
+          Array.isArray(value) &&
+          value.length > 0 &&
+          value.some((v: unknown) => v instanceof File)
+        ) {
+          const names: string[] = [];
+          for (const item of value as (string | File)[]) {
+            if (item instanceof File) {
+              formData.append(key, item, item.name);
+              names.push(item.name);
+            } else {
+              names.push(item);
+            }
+          }
+          data[key] = names;
         }
       }
       formData.append("record", JSON.stringify(data));
