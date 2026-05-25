@@ -1,6 +1,6 @@
 import { HTTPService } from "../services/http.service.js";
 import { MQTTService } from "../services/mqtt.service.js";
-import { Operator } from "../types/operator.models.js";
+import { BasicOperator, Operator } from "../types/operator.models.js";
 
 export class CollectionError extends Error {
   public operation: string;
@@ -31,6 +31,20 @@ export class Collection {
 
   filter(fieldName: string, operator: Operator, value: any): Collection {
     this.queryParams[`filter[${fieldName}][${operator}][${typeof value}]`] = value;
+    return this;
+  }
+
+  /**
+   * Filter records where a JSON array field contains at least one element
+   * matching a sub-field condition.
+   *
+   * Example: find all POs where any line has itemId = 'items:abc123'
+   *   .filterInArray('orderLines', 'itemId', '=', 'items:abc123')
+   *
+   * Generates SurrealDB: `orderLines`[WHERE `itemId` = 'items:abc123']
+   */
+  filterInArray(arrayField: string, subField: string, operator: BasicOperator, value: any): Collection {
+    this.queryParams[`filter[${arrayField}.${subField}][ARRAY_WHERE_${operator}][${typeof value}]`] = value;
     return this;
   }
 
