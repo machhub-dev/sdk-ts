@@ -21,6 +21,8 @@ export class Collection {
   protected mqttService: MQTTService | null;
   protected collectionName: string;
   protected queryParams: Record<string, any> = {};
+  protected orFilters: Array<{ fieldName: string; operator: Operator; value: any }> = [];
+  protected orArrayFilters: Array<{ arrayField: string; subField: string; operator: BasicOperator; value: any }> = [];
 
   constructor(httpService: HTTPService, mqttService: MQTTService | null, collectionName: string) {
     this.httpService = httpService;
@@ -32,6 +34,46 @@ export class Collection {
   filter(fieldName: string, operator: Operator, value: any): Collection {
     this.queryParams[`filter[${fieldName}][${operator}][${typeof value}]`] = value;
     return this;
+  }
+
+  /**
+   * Add a filter condition joined with OR logic.
+   * Multiple orFilter() calls are OR'd together and the resulting group
+   * is AND'd with any regular filter() conditions.
+   *
+   * Example: find records where status is 'active' OR 'pending'
+   *   .orFilter('status', '=', 'active')
+   *   .orFilter('status', '=', 'pending')
+   */
+  orFilter(fieldName: string, operator: Operator, value: any): Collection {
+    this.orFilters.push({ fieldName, operator, value });
+    return this;
+  }
+
+  /**
+   * Add an array-element filter condition joined with OR logic.
+   * Multiple orFilterInArray() calls are OR'd together and the resulting
+   * group is AND'd with any regular filter() conditions.
+   *
+   * Example: find records where any line has itemId = 'items:a' OR itemId = 'items:b'
+   *   .orFilterInArray('orderLines', 'itemId', '=', 'items:a')
+   *   .orFilterInArray('orderLines', 'itemId', '=', 'items:b')
+   */
+  orFilterInArray(arrayField: string, subField: string, operator: BasicOperator, value: any): Collection {
+    this.orArrayFilters.push({ arrayField, subField, operator, value });
+    return this;
+  }
+
+  private buildQueryParams(): Record<string, any> {
+    const params: Record<string, any> = { ...this.queryParams };
+    this.orFilters.forEach((f, i) => {
+      params[`filter_or[${i}][${f.fieldName}][${f.operator}][${typeof f.value}]`] = f.value;
+    });
+    const offset = this.orFilters.length;
+    this.orArrayFilters.forEach((f, i) => {
+      params[`filter_or[${offset + i}][${f.arrayField}.${f.subField}][ARRAY_WHERE_${f.operator}][${typeof f.value}]`] = f.value;
+    });
+    return params;
   }
 
   /**
@@ -92,7 +134,7 @@ export class Collection {
       if (options?.fields) {
         this.queryParams.fields = Array.isArray(options.fields) ? options.fields.join(",") : options.fields
       }
-      return await this.httpService.request.get(this.collectionName + "/all", this.queryParams);
+      return await this.httpService.request.get(this.collectionName + "/all", this.buildQueryParams());
     } catch (error) {
       throw new CollectionError('getAll', this.collectionName, error as Error);
     }
@@ -100,7 +142,7 @@ export class Collection {
 
   async count(): Promise<number> {
     try {
-      const response: { count: number } = await this.httpService.request.get(`${this.collectionName}/count`, this.queryParams);
+      const response: { count: number } = await this.httpService.request.get(`${this.collectionName}/count`, this.buildQueryParams());
       return response.count;
     } catch (error) {
       throw new CollectionError('count', this.collectionName, error as Error);
