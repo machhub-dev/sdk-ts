@@ -1,6 +1,7 @@
 import { HTTPService } from "../services/http.service.js";
 import { MQTTService } from "../services/mqtt.service.js";
 import { BasicOperator, Operator } from "../types/operator.models.js";
+import { RecordID, RecordIDToString } from "../types/recordID.models.js";
 
 export class CollectionError extends Error {
   public operation: string;
@@ -149,8 +150,9 @@ export class Collection {
     }
   }
   
-  async getOne(id: string, options?: { expand?: string | string[] }): Promise<any> {
-    if (!id) {
+  async getOne(id: string | RecordID, options?: { expand?: string | string[] }): Promise<any> {
+    const resolvedId = typeof id === 'string' ? id : RecordIDToString(id);
+    if (!resolvedId) {
       throw new Error("ID must be provided");
     }
     try {
@@ -163,7 +165,7 @@ export class Collection {
           : options.expand;
       }
 
-      return await this.httpService.request.get(id, queryParams);
+      return await this.httpService.request.get(resolvedId, queryParams);
     } catch (error) {
       throw new CollectionError('getOne', this.collectionName, error as Error);
     }
@@ -199,8 +201,9 @@ export class Collection {
     }
   }
 
-  async update(id: string, data: Record<string, any>): Promise<any> {
-    if (!id) {
+  async update(id: string | RecordID, data: Record<string, any>): Promise<any> {
+    const resolvedId = typeof id === 'string' ? id : RecordIDToString(id);
+    if (!resolvedId) {
       throw new Error("ID must be provided");
     }
     try {
@@ -232,18 +235,19 @@ export class Collection {
 
       return await this.httpService.request
         .withBody(formData)
-        .put(id);
+        .put(resolvedId);
     } catch (error) {
       throw new CollectionError('update', this.collectionName, error as Error);
     }
   }
 
-  async delete(id: string): Promise<any> {
-    if (!id) {
+  async delete(id: string | RecordID): Promise<any> {
+    const resolvedId = typeof id === 'string' ? id : RecordIDToString(id);
+    if (!resolvedId) {
       throw new Error("ID must be provided");
     }
     try {
-      return await this.httpService.request.delete(id);
+      return await this.httpService.request.delete(resolvedId);
     } catch (error) {
       throw new CollectionError('delete', this.collectionName, error as Error);
     }
