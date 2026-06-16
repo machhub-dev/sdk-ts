@@ -165,7 +165,7 @@ export class Collection {
           : options.expand;
       }
 
-      return await this.httpService.request.get(resolvedId, queryParams);
+      return await this.httpService.request.get(encodeURIComponent(resolvedId), queryParams);
     } catch (error) {
       throw new CollectionError('getOne', this.collectionName, error as Error);
     }
@@ -235,7 +235,7 @@ export class Collection {
 
       return await this.httpService.request
         .withBody(formData)
-        .put(resolvedId);
+        .put(encodeURIComponent(resolvedId));
     } catch (error) {
       throw new CollectionError('update', this.collectionName, error as Error);
     }
@@ -247,7 +247,7 @@ export class Collection {
       throw new Error("ID must be provided");
     }
     try {
-      return await this.httpService.request.delete(resolvedId);
+      return await this.httpService.request.delete(encodeURIComponent(resolvedId));
     } catch (error) {
       throw new CollectionError('delete', this.collectionName, error as Error);
     }
