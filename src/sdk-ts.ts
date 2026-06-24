@@ -70,9 +70,10 @@ class MQTTClient {
    * Publishes a message to a specific topic
    * @param topic The topic to publish to
    * @param data The data to publish
+   * @param retain Whether the broker should retain the message (default: true)
    */
-  async publish(topic: string, data: any): Promise<any> {
-    return this.mqttService.publish(topic, data);
+  async publish(topic: string, data: any, retain: boolean = true): Promise<any> {
+    return this.mqttService.publish(topic, data, retain);
   }
 }
 

@@ -94,7 +94,7 @@ export class MQTTService {
     }
 
     // Publishes a message to a specific topic
-    public publish(topic: string, message: unknown): boolean {
+    public publish(topic: string, message: unknown, retain: boolean = true): boolean {
         try {
 
             const payload = typeof message === 'object' && message !== null
@@ -104,7 +104,7 @@ export class MQTTService {
 
             this.client.publish(topic, payload, {
                 qos: 2,
-                retain: true,
+                retain,
                 properties: {
                     contentType: "json",
                 },

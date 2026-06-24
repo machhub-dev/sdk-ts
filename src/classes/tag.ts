@@ -14,11 +14,11 @@ export class Tag {
     return this.httpService.request.get("tag/list");
   }
 
-  async publish(topic: string, data: any): Promise<void> {
+  async publish(topic: string, data: any, retain: boolean = true): Promise<void> {
     if (!this.mqttService) {
       throw new Error("MQTT service not connected");
     }
-    this.mqttService.publish(topic, data);
+    this.mqttService.publish(topic, data, retain);
   }
 
   async subscribe(topic: string, callback: (data: any, topic?: string) => void): Promise<void> {
