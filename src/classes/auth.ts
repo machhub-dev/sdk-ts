@@ -1,6 +1,6 @@
 import { HTTPService } from "../services/http.service.js";
 import { jwtDecode } from "jwt-decode";
-import { Action, ActionResponse, Feature, Group, LoginResponse, PermissionResponse, User, ValidateJWTResponse } from "../types/auth.models.js";
+import { Action, ActionResponse, ChangePasswordResponse, Feature, Group, LoginResponse, PermissionResponse, User, ValidateJWTResponse } from "../types/auth.models.js";
 
 export class Auth {
   private httpService: HTTPService;
@@ -118,6 +118,18 @@ export class Auth {
       } catch {
         throw new Error("failed to checkPermission : " + (e as Error).message);
       }
+    }
+  }
+
+  public async changePassword(oldPassword: string, newPassword: string): Promise<ChangePasswordResponse> {
+    try {
+      return await this.httpService.request.withJSON({
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      }).post("/auth/change-password");
+    }
+    catch (e: unknown) {
+      throw new Error("Change password failed: " + (e as Error).message);
     }
   }
 

@@ -13,6 +13,11 @@ export interface ValidateJWTResponse extends BaseResponse {
     valid: boolean;
 }
 
+export interface ChangePasswordResponse {
+    message: string;
+    ok: boolean;
+}
+
 
 export interface User {
     id?: RecordID;
