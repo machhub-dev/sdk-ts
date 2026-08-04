@@ -18,6 +18,28 @@ export interface ChangePasswordResponse {
     ok: boolean;
 }
 
+export interface SuccessResponse {
+    success: boolean;
+    message: string;
+}
+
+export interface ResetPasswordResponse {
+    password: string;
+}
+
+// Fields for updateUser. All optional: only the fields you provide are updated,
+// the rest keep their current values. Supplying groupIDs replaces the user's
+// groups (an empty array removes them all); omitting it leaves groups unchanged.
+export interface UpdateUserInput {
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+    email?: string;
+    number?: string;
+    userImage?: string;
+    groupIDs?: string[];
+}
+
 
 export interface User {
     id?: RecordID;

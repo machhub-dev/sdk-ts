@@ -1,6 +1,6 @@
 import { HTTPService } from "../services/http.service.js";
 import { jwtDecode } from "jwt-decode";
-import { Action, ActionResponse, ChangePasswordResponse, Feature, Group, LoginResponse, PermissionResponse, User, ValidateJWTResponse } from "../types/auth.models.js";
+import { Action, ActionResponse, ChangePasswordResponse, Feature, Group, LoginResponse, PermissionResponse, ResetPasswordResponse, SuccessResponse, UpdateUserInput, User, ValidateJWTResponse } from "../types/auth.models.js";
 
 export class Auth {
   private httpService: HTTPService;
@@ -151,6 +151,35 @@ export class Auth {
       number: number,
       userImage: userImage
     }).post("/auth/user");
+  }
+
+  // Partially updates a user's profile and group memberships. Only the fields
+  // you provide are changed; omitted fields keep their current values and groups
+  // are left untouched unless groupIDs is supplied (an empty array removes all
+  // groups). Scoped to the caller's domain.
+  public async updateUser(userId: string, data: UpdateUserInput): Promise<SuccessResponse> {
+    const body: Record<string, unknown> = {};
+    if (data.firstName !== undefined) body.firstName = data.firstName;
+    if (data.lastName !== undefined) body.lastName = data.lastName;
+    if (data.username !== undefined) body.username = data.username;
+    if (data.email !== undefined) body.email = data.email;
+    if (data.number !== undefined) body.number = data.number;
+    if (data.userImage !== undefined) body.userImage = data.userImage;
+    if (data.groupIDs !== undefined) body.groupIDs = data.groupIDs;
+
+    return await this.httpService.request.withJSON(body).put(`/auth/user/${userId}`);
+  }
+
+  // Soft-deletes a user (marks deleted, removes group/permission memberships).
+  // Scoped to the caller's domain.
+  public async deleteUser(userId: string): Promise<SuccessResponse> {
+    return await this.httpService.request.delete(`/auth/user/${userId}`);
+  }
+
+  // Generates a new random password for the user and returns it. Scoped to the
+  // caller's domain.
+  public async resetPassword(userId: string): Promise<ResetPasswordResponse> {
+    return await this.httpService.request.post(`/auth/user/${userId}/reset-password`);
   }
 
   public async getGroups(): Promise<Group[]> {
