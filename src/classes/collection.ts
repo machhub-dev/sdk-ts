@@ -111,6 +111,29 @@ export class Collection {
     return this;
   }
 
+  /**
+   * On GET the query options ride in the URL, and the API server reads the
+   * request line and the headers into one fixed buffer - a filter set of a few
+   * dozen clauses overflows it and comes back as 431 Request Header Fields Too
+   * Large before the request is ever routed. Past this budget the same options
+   * are sent as a JSON body to the PATCH twin of the endpoint, which is
+   * identical server-side. GET is kept below the budget so the SDK still works
+   * against API builds that predate the PATCH routes, whose buffer is 4KB total
+   * - and the headers (a JWT Authorization can be 1.5KB on its own) come out of
+   * that same 4KB, so the budget for the query string alone has to stay well
+   * under it. Measured cliff on an unpatched server: ~3.5KB of URL with curl's
+   * minimal headers.
+   */
+  private static readonly QUERY_STRING_BUDGET = 1200;
+
+  private async requestWithParams<T>(path: string, params: Record<string, any>): Promise<T> {
+    const encoded = new URLSearchParams(params as Record<string, string>).toString();
+    if (encoded.length > Collection.QUERY_STRING_BUDGET) {
+      return await this.httpService.request.withJSON(params).patch<T>(path);
+    }
+    return await this.httpService.request.get<T>(path, params);
+  }
+
   private applyOptions(options?: Record<string, any>) {
     if (!options) return;
 
@@ -135,7 +158,7 @@ export class Collection {
       if (options?.fields) {
         this.queryParams.fields = Array.isArray(options.fields) ? options.fields.join(",") : options.fields
       }
-      return await this.httpService.request.get(this.collectionName + "/all", this.buildQueryParams());
+      return await this.requestWithParams<any[]>(this.collectionName + "/all", this.buildQueryParams());
     } catch (error) {
       throw new CollectionError('getAll', this.collectionName, error as Error);
     }
@@ -143,7 +166,7 @@ export class Collection {
 
   async count(): Promise<number> {
     try {
-      const response: { count: number } = await this.httpService.request.get(`${this.collectionName}/count`, this.buildQueryParams());
+      const response = await this.requestWithParams<{ count: number }>(`${this.collectionName}/count`, this.buildQueryParams());
       return response.count;
     } catch (error) {
       throw new CollectionError('count', this.collectionName, error as Error);

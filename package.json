@@ -17,7 +17,8 @@
   },
   "type": "module",
   "scripts": {
-    "build": "npx tsc && npx tsc --module CommonJS --outDir dist/cjs"
+    "build": "npx tsc && npx tsc --module CommonJS --outDir dist/cjs",
+    "test": "npx tsc && node --test src/**/*.test.mjs"
   },
   "dependencies": {
     "jwt-decode": "^4.0.0",
