@@ -2,13 +2,12 @@ import { HTTPService } from "../services/http.service.js";
 import { MQTTService } from "../services/mqtt.service.js";
 import { HistorizedData } from "../types/tag.models.js";
 
-interface AggregationOption {
-  mean: "mean",
-  sum: "sum",
-  min: "min",
-  max: "max",
-  median: "median",
-}
+/**
+ * Aggregation function applied to each sampleRate bucket by
+ * {@link Historian.getHistoricalDataAsCSV}. "none" - or omitting the argument -
+ * exports the raw values.
+ */
+export type AggregationOption = "mean" | "sum" | "min" | "max" | "median" | "none";
 
 
 export class Historian {

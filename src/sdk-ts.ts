@@ -90,7 +90,6 @@ export class SDK {
   private mqtt: MQTTClient | null = null;
   private _historian: Historian | null = null;
   private _tag: Tag | null = null;
-  private _function: Function | null = null;
   private _auth: Auth | null = null;
   private _processes: Processes | null = null;
   private applicationID: string = "";
@@ -219,16 +218,6 @@ export class SDK {
       throw new Error("SDK is not initialized. Call `Initialize` before accessing `tag`.");
     }
     return this._tag;
-  }
-
-  /**
-   * Getter for `function`. Ensures `function` is accessed only after initialization.
-   */
-  public get function(): Function {
-    if (!this._function) {
-      throw new Error("SDK is not initialized. Call `Initialize` before accessing `function`.");
-    }
-    return this._function;
   }
 
   /**
