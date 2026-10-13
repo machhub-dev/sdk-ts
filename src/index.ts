@@ -1,4 +1,5 @@
 export { SDK, type SDKConfig } from './sdk-ts.js';
+export { Logger, type ProcessLogLevel, type ProcessLogSink } from './classes/logger.js';
 
 // Export individual types
 export type { LoginResponse, PermissionResponse, ValidateJWTResponse, ChangePasswordResponse, User, Group, Feature, Permission, ActionResponse, Action, Scope } from './types/auth.models.js';
@@ -9,3 +10,6 @@ export { StringToRecordID, RecordIDToString, emptyRecordID } from './types/recor
 export type { HistorizedData } from './types/tag.models.js';
 export type { AggregationOption } from './classes/historian.js';
 export type { Process, ProcessLanguage, ProcessTrigger, TriggerType, TriggerConfig, ProcessInput, InputType, InputConfig, ProcessOutput, OutputType, OutputConfig, ProcessKey, ProcessValue } from './types/processes.models.js';
+export { Bridge, BridgeQueryError } from "./classes/bridge.js";
+export type { BridgeQueryOptions, BridgeQueryResult } from "./types/bridge.models.js";
+export { Env } from "./classes/env.js";

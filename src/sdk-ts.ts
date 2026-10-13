@@ -1,10 +1,13 @@
 import { HTTPService } from "./services/http.service.js";
 import { MQTTService } from "./services/mqtt.service.js";
 import { Collection } from "./classes/collection.js";
+import { Bridge } from "./classes/bridge.js";
+import { Env } from "./classes/env.js";
 import { Historian } from "./classes/historian.js";
 import { Tag } from "./classes/tag.js";
 import { Auth } from "./classes/auth.js";
 import { Processes } from "./classes/processes.js";
+import { Logger, type ProcessLogSink } from "./classes/logger.js";
 
 const MACHHUB_SDK_PATH = "machhub";
 
@@ -92,6 +95,12 @@ export class SDK {
   private _tag: Tag | null = null;
   private _auth: Auth | null = null;
   private _processes: Processes | null = null;
+  // Constructed eagerly, unlike the services above: `log` needs no HTTP or MQTT
+  // client, so it must work before (and without) Initialize.
+  private _log: Logger = new Logger();
+  // Same reasoning: the environment is already present in the process, so
+  // reading it must not depend on a client being initialized.
+  private _env: Env = new Env();
   private applicationID: string = "";
 
   /**
@@ -231,6 +240,47 @@ export class SDK {
   }
 
   /**
+   * Getter for `log`. Available without initialization.
+   *
+   * Inside MACHHUB process code, lines written here go to that process's own log
+   * rather than the shared domain worker log that `console.log` writes to.
+   * Elsewhere the calls fall through to `console`.
+   *
+   * @example
+   * ```typescript
+   * sdk.log.info("reconciled", rows.length, "rows");
+   * sdk.log.error(err);
+   * ```
+   */
+  public get log(): Logger {
+    return this._log;
+  }
+
+  /**
+   * Getter for `env`. Available without initialization.
+   *
+   * Reads the environment variables and secrets configured for this domain
+   * under Processes → Environment.
+   *
+   * @example
+   * ```typescript
+   * const key = sdk.env.require('ERP_API_KEY');
+   * ```
+   */
+  public get env(): Env {
+    return this._env;
+  }
+
+  /**
+   * Installs the transport that delivers `sdk.log` output to the MACHHUB host.
+   * Called by the process worker at startup; process code never needs this.
+   * @internal
+   */
+  public __attachProcessLogger(sink: ProcessLogSink | null): void {
+    this._log.attach(sink);
+  }
+
+  /**
    * Creates a collection instance to interact with the specified table/collection.
    * Throws an error if the SDK is not initialized.
    * @param collectionName {string} The collection/table name.
@@ -241,6 +291,32 @@ export class SDK {
       throw new Error("SDK is not initialized. Call `Initialize` before accessing collection.");
     }
     return new Collection(this.http["httpService"], this.mqtt ? this.mqtt["mqttService"] : null, collectionName);
+  }
+
+  /**
+   * Creates a Bridge instance for reading the external database behind one
+   * Data Bridge.
+   *
+   * Reads only — the statement runs inside a READ ONLY transaction on the
+   * server. The point of routing through here rather than connecting with your
+   * own MySQL client is the credential: MACHHUB keeps the bridge password
+   * sealed and never returns it, so a direct connection would mean a second,
+   * unsealed copy of it in your process code.
+   *
+   * @param bridgeID {string} The Data Bridge record ID, e.g. "databridges:erp".
+   * @returns {Bridge} An instance of Bridge.
+   *
+   * @example
+   * ```typescript
+   * const { rows } = await sdk.bridge('databridges:erp')
+   *   .query('SELECT machine, qty FROM work_orders WHERE shift_date = ?', [today]);
+   * ```
+   */
+  public bridge(bridgeID: string): Bridge {
+    if (!this.http) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing bridge.");
+    }
+    return new Bridge(this.http["httpService"], bridgeID);
   }
 }
 
