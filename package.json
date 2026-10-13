@@ -8,16 +8,30 @@
   ],
   "license": "MPL-2.0",
   "author": "Intellogic Technology Sdn Bhd",
-  "types": "dist/types.d.ts",
-  "main": "dist/cjs/index.cjs",
+  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
   "module": "dist/index.js",
   "exports": {
-    "import": "./dist/index.js",
-    "require": "./dist/cjs/index.cjs"
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
   },
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "npx tsc && npx tsc --module CommonJS --outDir dist/cjs",
+    "build": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\" && npx tsc && npx tsc --module CommonJS --outDir dist/cjs && node -e \"fs.writeFileSync('dist/cjs/package.json',JSON.stringify({type:'commonjs'})+'\\n')\"",
     "test": "npx tsc && node --test src/**/*.test.mjs"
   },
   "dependencies": {
