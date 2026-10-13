@@ -32,7 +32,8 @@
   ],
   "scripts": {
     "build": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\" && npx tsc && npx tsc --module CommonJS --outDir dist/cjs && node -e \"fs.writeFileSync('dist/cjs/package.json',JSON.stringify({type:'commonjs'})+'\\n')\"",
-    "test": "npx tsc && node --test src/**/*.test.mjs"
+    "test": "npx tsc && node --test src/**/*.test.mjs",
+    "prepublishOnly": "npm test && npm run build"
   },
   "dependencies": {
     "jwt-decode": "^4.0.0",
