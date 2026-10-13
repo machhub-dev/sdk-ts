@@ -16,6 +16,8 @@ export interface ValidateJWTResponse extends BaseResponse {
 export interface ChangePasswordResponse {
     message: string;
     ok: boolean;
+    // Fresh token issued after the old ones are revoked. Absent on older servers.
+    tkn?: string;
 }
 
 export interface SuccessResponse {

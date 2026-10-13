@@ -123,10 +123,18 @@ export class Auth {
 
   public async changePassword(oldPassword: string, newPassword: string): Promise<ChangePasswordResponse> {
     try {
-      return await this.httpService.request.withJSON({
+      const res: ChangePasswordResponse = await this.httpService.request.withJSON({
         oldPassword: oldPassword,
         newPassword: newPassword,
       }).post("/auth/change-password");
+
+      // A password change revokes the caller's old tokens and returns a fresh one.
+      // Store it the way login does, or the next request fails with 401. Older
+      // servers send no tkn, so the stored token is left alone.
+      if (res.tkn) {
+        this.storageSet(this.getStorageKey(), res.tkn);
+      }
+      return res;
     }
     catch (e: unknown) {
       throw new Error("Change password failed: " + (e as Error).message);
