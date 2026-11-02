@@ -8,6 +8,8 @@ import { Tag } from "./classes/tag.js";
 import { Auth } from "./classes/auth.js";
 import { Processes } from "./classes/processes.js";
 import { Logger, type ProcessLogSink } from "./classes/logger.js";
+import { Workspace } from "./classes/workspace.js";
+import { Knowledge } from "./classes/knowledge.js";
 
 const MACHHUB_SDK_PATH = "machhub";
 
@@ -60,6 +62,12 @@ class MQTTClient {
     return this.instance;
   }
 
+  /** Ends the shared MQTT connection, so the next getInstance makes a new one. */
+  static reset(): void {
+    MQTTService.resetInstance();
+    this.instance = undefined;
+  }
+
   /**
    * Subscribes to live tag data updates
    * @param topic The tag topic
@@ -81,7 +89,10 @@ class MQTTClient {
 }
 
 export interface SDKConfig {
+  /** The Workspace's id. MACHHUB 1 called a Workspace a domain, and this its application id. */
   application_id: string;
+  /** The same as application_id, by its MACHHUB 2 name. application_id wins when both are set. */
+  workspace_id?: string;
   developer_key?: string;
   httpUrl?: string;
   mqttUrl?: string;
@@ -95,6 +106,8 @@ export class SDK {
   private _tag: Tag | null = null;
   private _auth: Auth | null = null;
   private _processes: Processes | null = null;
+  private _workspace: Workspace | null = null;
+  private _knowledge: Knowledge | null = null;
   // Constructed eagerly, unlike the services above: `log` needs no HTTP or MQTT
   // client, so it must work before (and without) Initialize.
   private _log: Logger = new Logger();
@@ -144,6 +157,7 @@ export class SDK {
       // 2. Via development server - Set via Extension/ 
       //          API to get Config (All SDK URLs default to localhost with port from querying current window or 61888)
       if (config === undefined) config = { application_id: "" }
+      if (!config.application_id && config.workspace_id) config = { ...config, application_id: config.workspace_id }
       if (!config.application_id) config = { application_id: "" }
 
       const envCfg = await getEnvConfig();
@@ -191,6 +205,8 @@ export class SDK {
       this._tag = new Tag(this.http["httpService"], this.mqtt["mqttService"]);
       this._auth = new Auth(this.http["httpService"], this.applicationID);
       this._processes = new Processes(this.http["httpService"]);
+      this._workspace = new Workspace(this.http["httpService"]);
+      this._knowledge = new Knowledge(this.http["httpService"]);
     } catch (error: any) {
       console.error("Failed to initialize:", error);
       return false;
@@ -232,6 +248,36 @@ export class SDK {
   /**
    * Getter for `processes`. Ensures `processes` is accessed only after initialization.
    */
+  /**
+   * Ends the SDK's MQTT connection. A browser app need not call it; a Node
+   * script or test does, or the connection keeps the process running.
+   * Initialize again to use the SDK after it.
+   */
+  public Close(): void {
+    MQTTClient.reset();
+    this.mqtt = null;
+  }
+
+  /**
+   * The Workspace's folders and items (MACHHUB 2).
+   */
+  public get workspace(): Workspace {
+    if (!this._workspace) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing `workspace`.");
+    }
+    return this._workspace;
+  }
+
+  /**
+   * Knowledge search over records and files (MACHHUB 2).
+   */
+  public get knowledge(): Knowledge {
+    if (!this._knowledge) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing `knowledge`.");
+    }
+    return this._knowledge;
+  }
+
   public get processes(): Processes {
     if (!this._processes) {
       throw new Error("SDK is not initialized. Call `Initialize` before accessing `processes`.");

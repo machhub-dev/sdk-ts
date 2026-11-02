@@ -13,3 +13,6 @@ export type { Process, ProcessLanguage, ProcessTrigger, TriggerType, TriggerConf
 export { Bridge, BridgeQueryError } from "./classes/bridge.js";
 export type { BridgeQueryOptions, BridgeQueryResult } from "./types/bridge.models.js";
 export { Env } from "./classes/env.js";
+export { Workspace } from "./classes/workspace.js";
+export { Knowledge } from "./classes/knowledge.js";
+export type { AccessLevel, Item, Folder, WorkspaceTree, ItemsQuery, CollectionView, KnowledgeFilter, KnowledgeSearchOptions, KnowledgeHit, KnowledgeResults } from "./types/workspace.models.js";

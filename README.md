@@ -134,6 +134,34 @@ const result = await sdk.processes.execute('my-process', { key: 'value' });
 const result = await sdk.processes.execute('my-process');
 ```
 
+### Workspace (MACHHUB 2)
+
+A Workspace (what MACHHUB 1 called a domain) holds folders, and items in them. Only what the caller may see is answered, with their access on each. `workspace_id` in the config is the same as `application_id`.
+
+```typescript
+const tree = await sdk.workspace.tree();                 // folders and items
+const tables = await sdk.workspace.items({ type: 'collection', query: 'order', limit: 20 });
+const item = await sdk.workspace.item('items:abc');
+
+const views = await sdk.collection('orders').views();    // Table, Form and Gallery views
+```
+
+### Knowledge (MACHHUB 2)
+
+Search the records and files of collections switched on for Knowledge. Each hit carries the passage, its record and, for a file, the page.
+
+```typescript
+const { hits } = await sdk.knowledge.search('pump pressure limit', { k: 5 });
+```
+
+### Closing
+
+A Node script or test calls `sdk.Close()` when done, or the MQTT connection keeps the process running.
+
+## Testing
+
+`npm test` builds and runs the unit tests. With `MACHHUB_SDK_LIVE_URL` set it also runs `src/live.test.mjs` against that MACHHUB: it signs in (admin / admin, or `MACHHUB_SDK_LIVE_USER` / `_PASS`), makes an API key and a collection, exercises the v1 calls and the MACHHUB 2 reads, and removes both.
+
 ## License
 
 [MPL-2.0](LICENSE)
