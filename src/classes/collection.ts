@@ -2,6 +2,7 @@ import { HTTPService } from "../services/http.service.js";
 import { MQTTService } from "../services/mqtt.service.js";
 import { BasicOperator, Operator } from "../types/operator.models.js";
 import { RecordID, RecordIDToString } from "../types/recordID.models.js";
+import { CollectionView } from "../types/workspace.models.js";
 
 export class CollectionError extends Error {
   public operation: string;
@@ -142,6 +143,24 @@ export class Collection {
         this.queryParams[key] = value;
       }
     }
+  }
+
+  /**
+   * The collection's views the caller can see: shared Table, Form and Gallery
+   * views, and their own (MACHHUB 2).
+   */
+  async views(): Promise<CollectionView[]> {
+    const res = await this.httpService.request.get<{ items: CollectionView[] | null }>(
+      `collections/${encodeURIComponent(this.collectionName)}/views`
+    );
+    return res?.items ?? [];
+  }
+
+  /** One of the collection's views by its id (MACHHUB 2). */
+  async view(viewID: string): Promise<CollectionView> {
+    return await this.httpService.request.get<CollectionView>(
+      `collections/${encodeURIComponent(this.collectionName)}/views/${encodeURIComponent(viewID)}`
+    );
   }
 
   async first(): Promise<any> {
