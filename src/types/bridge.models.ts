@@ -1,7 +1,8 @@
 /**
  * One read against a Data Bridge's external database.
  *
- * `params` bind positionally to `?` placeholders in the SQL. They are a
+ * `params` bind positionally to placeholders in the SQL (`?` on MySQL, `$1` on
+ * PostgreSQL). They are a
  * separate field rather than something you interpolate yourself because process
  * code building a WHERE clause from a tag name or a time range has no safe way
  * to do it by concatenation.

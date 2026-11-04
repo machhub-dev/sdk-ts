@@ -68,10 +68,11 @@ export class Bridge {
   /**
    * Runs one read and returns the rows with their column order and row count.
    *
-   * @param sql A single read statement (SELECT, WITH, SHOW, DESCRIBE, EXPLAIN).
-   *            Use `?` placeholders and pass values in `params` — never build a
+   * @param sql A single read statement (SELECT, WITH, SHOW, EXPLAIN; also DESCRIBE
+   *            on MySQL, TABLE and VALUES on PostgreSQL).
+   *            Use placeholders (`?` on MySQL, `$1` on PostgreSQL) and pass values in `params` — never build a
    *            WHERE clause by string concatenation.
-   * @param params Values bound positionally to the `?` placeholders.
+   * @param params Values bound positionally to the placeholders.
    * @param options `limit` caps the rows returned (default 500, max 10,000).
    * @throws {BridgeQueryError} when the statement or the database refuses it.
    */
