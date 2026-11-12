@@ -66,7 +66,8 @@ before(async () => {
 		description: 'SDK live test',
 		fields: [
 			{ name: 'title', type: 'string' },
-			{ name: 'count', type: 'number' }
+			{ name: 'count', type: 'number' },
+			{ name: 'doc', type: 'file' }
 		]
 	});
 	live.collectionID = rid(created.id);
@@ -114,6 +115,28 @@ test('v1: a record is created, read, updated, counted and deleted', { skip }, as
 
 	await c.delete(record.id);
 	assert.equal(await live.sdk.collection(name).count(), 0);
+});
+
+test('v1: a file field is uploaded, read back and replaced', { skip }, async () => {
+	const c = live.sdk.collection(name);
+	const text = async (blob) => Buffer.from(await blob.arrayBuffer()).toString('utf8');
+
+	await c.create({ title: 'with file', doc: new File(['hello world'], 'hello.txt', { type: 'text/plain' }) });
+	const [record] = (await c.getAll()).filter((r) => r.title === 'with file');
+	assert.ok(record, 'the record was not created');
+	assert.equal(record.doc, 'hello.txt');
+	const id = rid(record.id);
+
+	const first = await c.getFile('hello.txt', 'doc', id);
+	assert.ok(first instanceof Blob, 'getFile returns a Blob');
+	assert.equal(await text(first), 'hello world');
+
+	await c.update(record.id, { doc: new File(['goodbye'], 'bye.txt', { type: 'text/plain' }) });
+	const after = await c.getOne(record.id);
+	assert.equal(after.doc, 'bye.txt');
+	assert.equal(await text(await c.getFile('bye.txt', 'doc', id)), 'goodbye');
+
+	await c.delete(record.id);
 });
 
 test('v2: the collection is an item, in the tree, with its default view', { skip }, async () => {
