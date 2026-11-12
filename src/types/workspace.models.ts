@@ -33,6 +33,12 @@ export interface Folder {
   [key: string]: unknown;
 }
 
+/** A folder as a change answers it, without the caller's access. */
+export type FolderRecord = Omit<Folder, "access">;
+
+/** An item as a move answers it, without the caller's access. */
+export type ItemRecord = Omit<Item, "access">;
+
 /** The folders and items the caller can see. */
 export interface WorkspaceTree {
   root_id: RecordID;
@@ -65,6 +71,81 @@ export interface CollectionView {
   editable?: boolean;
   deletable?: boolean;
   [key: string]: unknown;
+}
+
+/** What `createView` makes. `config` is the view's columns, sort and filters. */
+export interface CreateViewInput {
+  kind: "table" | "form" | "gallery" | string;
+  name: string;
+  /** Seen by everyone who can see the collection; needs edit on it. */
+  shared?: boolean;
+  config?: Record<string, unknown>;
+  order?: number;
+}
+
+/** What `updateView` changes; at least one. */
+export interface UpdateViewInput {
+  name?: string;
+  config?: Record<string, unknown>;
+  order?: number;
+}
+
+/** What `createFolder` makes. With no `parent` it goes in the Workspace's root. */
+export interface CreateFolderInput {
+  name: string;
+  parent?: string | RecordID;
+}
+
+/** What `updateFolder` changes; at least one. */
+export interface UpdateFolderInput {
+  name?: string;
+  /** Its place among its siblings. */
+  order?: number;
+}
+
+/** The answer of a delete. */
+export interface Deleted {
+  id: string;
+  deleted: boolean;
+}
+
+/** One version of a versioned item, without its content. */
+export interface VersionSummary {
+  n: number;
+  note?: string;
+  created_by?: string;
+  created_dt?: string;
+}
+
+/** One version with its content, as the item's own History tab reads it. */
+export interface Version extends VersionSummary {
+  content: Record<string, unknown>;
+}
+
+/** Narrows `collection.history()`. */
+export interface RecordHistoryQuery {
+  /** The `next` of the page before. */
+  before?: string;
+  /** At most 200; 50 when not given. */
+  limit?: number;
+}
+
+/** One change to a record's values. */
+export interface RecordHistoryEntry {
+  id: string;
+  record: string;
+  /** "update" or "delete": `values` are the record's values before it. */
+  op: string;
+  values: Record<string, unknown>;
+  actor?: string;
+  call_id?: string;
+  created_dt: string;
+}
+
+/** A page of a record's history, newest first; `next` is "" on the last. */
+export interface RecordHistoryPage {
+  items: RecordHistoryEntry[];
+  next: string;
 }
 
 /** One condition on a record field: { field: "status", op: "eq", value: "open" }. */

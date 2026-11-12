@@ -10,7 +10,8 @@
 //
 // It signs in as MACHHUB_SDK_LIVE_USER / _PASS (default admin / admin), makes
 // an API key and a collection named sdk_live_<time> for the SDK to use, and
-// removes both at the end, pass or fail.
+// removes both at the end, pass or fail. The v2 write tests remove what they
+// make (folders, views) themselves.
 
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
@@ -142,5 +143,89 @@ test('v2: Knowledge search answers, or says why it cannot', { skip }, async () =
 	} catch (e) {
 		assert.notEqual(e.status, 404, `the search route is missing: ${e.message}`);
 		assert.ok([401, 403, 503].includes(e.status), `unexpected answer: ${e.status} ${e.message}`);
+	}
+});
+
+test('v2: a folder is made, renamed, moved, filled, emptied and deleted', { skip }, async () => {
+	const ws = live.sdk.workspace;
+	const made = [];
+	let item;
+	let home;
+	try {
+		const tree = await ws.tree();
+		const a = await ws.createFolder({ name: `${name}_a` });
+		made.push(rid(a.id));
+		assert.equal(rid(a.parent_id), rid(tree.root_id), 'a folder with no parent goes in the root');
+		const b = await ws.createFolder({ name: `${name}_b`, parent: rid(tree.root_id) });
+		made.push(rid(b.id));
+
+		assert.equal((await ws.renameFolder(a.id, `${name}_a2`)).name, `${name}_a2`);
+		const moved = await ws.moveFolder(a.id, b.id);
+		assert.equal(rid(moved.parent_id), rid(b.id));
+
+		[item] = (await ws.items({ type: 'collection', query: name, limit: 5 })).filter((i) => i.name === name);
+		assert.ok(item, `no item for ${name}`);
+		home = rid(item.folder_id);
+		assert.equal(rid((await ws.moveItem(item.id, a.id)).folder_id), rid(a.id));
+		assert.ok((await ws.items({ folder: rid(a.id) })).some((i) => rid(i.id) === rid(item.id)));
+
+		// A folder with something in it is not deleted.
+		await assert.rejects(() => ws.deleteFolder(b.id), (e) => e.status === 409);
+	} finally {
+		if (item && home) await ws.moveItem(item.id, home).catch((e) => console.error(e.message));
+		// a is inside b, and was made first: delete in the order made.
+		for (const id of made) await ws.deleteFolder(id).catch((e) => console.error(e.message));
+	}
+	const left = (await ws.tree()).folders.filter((f) => f.name.startsWith(name));
+	assert.deepEqual(left, [], 'the folders were not all deleted');
+});
+
+test('v2: a view is created, updated and deleted', { skip }, async () => {
+	const c = live.sdk.collection(name);
+	// A key with no signed-in user makes shared views only.
+	await assert.rejects(() => c.createView({ kind: 'table', name: `${name}_mine` }), (e) => e.status === 400);
+	const view = await c.createView({ kind: 'table', name: `${name}_view`, shared: true, config: {} });
+	try {
+		assert.equal(view.name, `${name}_view`);
+		assert.equal((await c.updateView(view.id, { name: `${name}_view2` })).name, `${name}_view2`);
+		assert.ok((await c.views()).some((v) => v.id === view.id));
+	} finally {
+		await c.deleteView(view.id).catch((e) => console.error(e.message));
+	}
+	assert.ok(!(await c.views()).some((v) => v.id === view.id), 'the view was not deleted');
+	const table = (await c.views()).find((v) => v.is_default);
+	if (table) await assert.rejects(() => c.deleteView(table.id), (e) => e.status === 409);
+});
+
+test('v2: the schema versions of a collection, by record and by item id', { skip }, async () => {
+	const ws = live.sdk.workspace;
+	const versions = await ws.versions(live.collectionID);
+	assert.ok(versions.length > 0, 'a new collection has a first version');
+	const first = await ws.version(live.collectionID, versions[versions.length - 1].n);
+	assert.equal(typeof first.content, 'object');
+	const [item] = (await ws.items({ type: 'collection', query: name, limit: 5 })).filter((i) => i.name === name);
+	assert.deepEqual((await ws.versions(item.id)).map((v) => v.n), versions.map((v) => v.n));
+	await assert.rejects(() => ws.version(live.collectionID, 9999), (e) => e.status === 404);
+});
+
+test('v2: the value history of a record', { skip }, async () => {
+	const c = live.sdk.collection(name);
+	const rec = await c.create({ title: 'h1', count: 1 });
+	try {
+		await c.update(rec.id, { title: 'h2', count: 2 });
+		// Record history is off by default; switching it on is the UI's call.
+		try {
+			const page = await c.history(rec.id);
+			assert.ok(Array.isArray(page.items));
+		} catch (e) {
+			assert.equal(e.status, 503, `unexpected answer: ${e.status} ${e.message}`);
+		}
+		await api('PUT', `/api/collections/${live.collectionID}/record-history`, { enabled: true });
+		await c.update(rec.id, { title: 'h3', count: 3 });
+		const page = await c.history(rec.id, { limit: 5 });
+		assert.ok(page.items.length > 0, 'an update with history on is kept');
+		assert.equal(page.items[0].op, 'update');
+	} finally {
+		await c.delete(rec.id).catch((e) => console.error(e.message));
 	}
 });

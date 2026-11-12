@@ -24,6 +24,14 @@ function stand(calls, reply) {
 		async post(path) {
 			calls.push({ method: 'POST', path, body: this.body });
 			return reply(path);
+		},
+		async patch(path) {
+			calls.push({ method: 'PATCH', path, body: this.body });
+			return reply(path);
+		},
+		async delete(path) {
+			calls.push({ method: 'DELETE', path });
+			return reply(path);
 		}
 	};
 	return {
@@ -76,4 +84,55 @@ test('knowledge search posts the query and options and always answers hits', asy
 	assert.deepEqual(res.hits, []);
 	assert.deepEqual(calls[0], { method: 'POST', path: 'knowledge/search', body: { query: 'pump pressure', k: 3, sources: ['collections:a'] } });
 	await assert.rejects(() => k.search('  '), /needs a query/);
+});
+
+test('folder writes send their paths and bodies, ids from either form', async () => {
+	const calls = [];
+	const ws = new Workspace(stand(calls, () => ({})));
+	await ws.createFolder({ name: 'Line 3', parent: { Table: 'folders', ID: 'p' } });
+	await ws.createFolder({ name: 'Top' });
+	await ws.renameFolder('folders:a', 'Line 4');
+	await ws.updateFolder('folders:a', { order: 2 });
+	await ws.moveFolder('folders:a', 'folders:b');
+	await ws.deleteFolder('folders:a');
+	await ws.moveItem({ Table: 'items', ID: 'i' }, 'folders:b');
+	assert.deepEqual(calls, [
+		{ method: 'POST', path: 'tree/folders', body: { name: 'Line 3', parent_id: 'folders:p' } },
+		{ method: 'POST', path: 'tree/folders', body: { name: 'Top' } },
+		{ method: 'PATCH', path: 'tree/folders/folders%3Aa', body: { name: 'Line 4' } },
+		{ method: 'PATCH', path: 'tree/folders/folders%3Aa', body: { order: 2 } },
+		{ method: 'POST', path: 'tree/folders/folders%3Aa/move', body: { parent_id: 'folders:b' } },
+		{ method: 'DELETE', path: 'tree/folders/folders%3Aa' },
+		{ method: 'POST', path: 'items/items%3Ai/move', body: { folder_id: 'folders:b' } }
+	]);
+	await assert.rejects(() => ws.updateFolder('folders:a', {}), /Nothing to change/);
+});
+
+test('versions list and read one, by record or item id', async () => {
+	const calls = [];
+	const reply = (p) => {
+		if (p.startsWith('items/')) return { ref: { Table: 'processes', ID: 'q' } };
+		return p.endsWith('/2') ? { n: 2, content: {} } : { items: null };
+	};
+	const ws = new Workspace(stand(calls, reply));
+	assert.deepEqual(await ws.versions('processes:p'), []);
+	assert.equal((await ws.version({ Table: 'items', ID: 'i' }, 2)).n, 2);
+	assert.deepEqual(calls.map((c) => c.path), ['versions/processes%3Ap', 'items/items%3Ai', 'versions/processes%3Aq/2']);
+	await assert.rejects(() => ws.version('processes:p', 0), /whole number/);
+});
+
+test('a collection creates, updates and deletes views, and reads a record history', async () => {
+	const calls = [];
+	const c = new Collection(stand(calls, (p) => (p.endsWith('/history') ? { items: null } : { id: 'v' })), null, 'line 3');
+	await c.createView({ kind: 'table', name: 'Mine' });
+	await c.updateView('collection_views:v', { name: 'Ours' });
+	await c.deleteView('collection_views:v');
+	assert.deepEqual(await c.history({ Table: 'line_3', ID: 'r' }, { limit: 10, before: '2026-01-01T00:00:00Z' }), { items: [], next: '' });
+	assert.deepEqual(calls, [
+		{ method: 'POST', path: 'collections/line%203/views', body: { kind: 'table', name: 'Mine' } },
+		{ method: 'PATCH', path: 'collections/line%203/views/collection_views%3Av', body: { name: 'Ours' } },
+		{ method: 'DELETE', path: 'collections/line%203/views/collection_views%3Av' },
+		{ method: 'GET', path: 'collections/line%203/records/line_3%3Ar/history', query: { before: '2026-01-01T00:00:00Z', limit: '10' } }
+	]);
+	await assert.rejects(() => c.updateView('collection_views:v', {}), /Nothing to change/);
 });

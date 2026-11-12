@@ -2,7 +2,7 @@ import { HTTPService } from "../services/http.service.js";
 import { MQTTService } from "../services/mqtt.service.js";
 import { BasicOperator, Operator } from "../types/operator.models.js";
 import { RecordID, RecordIDToString } from "../types/recordID.models.js";
-import { CollectionView } from "../types/workspace.models.js";
+import { CollectionView, CreateViewInput, Deleted, RecordHistoryPage, RecordHistoryQuery, UpdateViewInput } from "../types/workspace.models.js";
 
 export class CollectionError extends Error {
   public operation: string;
@@ -161,6 +161,52 @@ export class Collection {
     return await this.httpService.request.get<CollectionView>(
       `collections/${encodeURIComponent(this.collectionName)}/views/${encodeURIComponent(viewID)}`
     );
+  }
+
+  /**
+   * Adds a view: the signed-in user's own, or with `shared` one everyone who
+   * can see the collection sees (that needs edit on it). A developer key with
+   * no signed-in user makes only shared views, and needs the config write
+   * scope. Needs MACHHUB 2.
+   */
+  async createView(input: CreateViewInput): Promise<CollectionView> {
+    return await this.httpService.request
+      .withJSON({ ...input })
+      .post<CollectionView>(`collections/${encodeURIComponent(this.collectionName)}/views`);
+  }
+
+  /** Changes a view's name, config or order. Needs MACHHUB 2. */
+  async updateView(viewID: string, input: UpdateViewInput): Promise<CollectionView> {
+    if (input.name === undefined && input.config === undefined && input.order === undefined) {
+      throw new Error("Nothing to change: give `name`, `config` or `order`.");
+    }
+    return await this.httpService.request
+      .withJSON({ ...input })
+      .patch<CollectionView>(`collections/${encodeURIComponent(this.collectionName)}/views/${encodeURIComponent(viewID)}`);
+  }
+
+  /** Deletes a view. The collection's default view cannot be deleted (409). Needs MACHHUB 2. */
+  async deleteView(viewID: string): Promise<Deleted> {
+    return await this.httpService.request.delete<Deleted>(
+      `collections/${encodeURIComponent(this.collectionName)}/views/${encodeURIComponent(viewID)}`
+    );
+  }
+
+  /**
+   * A page of one record's value history, newest first. Pass the page's
+   * `next` as `before` for the page after. Answers 503 when the collection
+   * does not keep record history. Needs MACHHUB 2.
+   */
+  async history(recordId: string | RecordID, options: RecordHistoryQuery = {}): Promise<RecordHistoryPage> {
+    const resolved = typeof recordId === "string" ? recordId : RecordIDToString(recordId);
+    const params: Record<string, string> = {};
+    if (options.before) params.before = options.before;
+    if (options.limit !== undefined) params.limit = String(options.limit);
+    const res = await this.httpService.request.get<RecordHistoryPage>(
+      `collections/${encodeURIComponent(this.collectionName)}/records/${encodeURIComponent(resolved)}/history`,
+      params
+    );
+    return { items: res?.items ?? [], next: res?.next ?? "" };
   }
 
   async first(): Promise<any> {
