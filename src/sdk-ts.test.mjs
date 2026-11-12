@@ -42,3 +42,29 @@ test('log and env work before Initialize', () => {
 	assert.doesNotThrow(() => sdk.log);
 	assert.doesNotThrow(() => sdk.env);
 });
+
+test('in Node the token from login is sent as a Bearer token until logout', async () => {
+	assert.equal(typeof localStorage, 'undefined', 'this test is for environments without localStorage');
+	const { HTTPService } = await import('../dist/services/http.service.js');
+	const { Auth } = await import('../dist/classes/auth.js');
+	const http = new HTTPService('http://sdk.test', '', 'app1');
+	const auth = new Auth(http, 'app1');
+
+	const seen = [];
+	const realFetch = globalThis.fetch;
+	globalThis.fetch = async (url, init) => {
+		seen.push({ url: String(url), auth: init?.headers?.Authorization });
+		return new Response(JSON.stringify({ tkn: 'tkn-123' }), { headers: { 'content-type': 'application/json' } });
+	};
+	try {
+		await auth.login('u', 'p');
+		await http.request.get('/ping');
+		assert.equal(seen.at(-1).auth, 'Bearer tkn-123');
+
+		await auth.logout();
+		await http.request.get('/ping');
+		assert.equal(seen.at(-1).auth, undefined);
+	} finally {
+		globalThis.fetch = realFetch;
+	}
+});
