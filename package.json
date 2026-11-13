@@ -1,6 +1,6 @@
 {
   "name": "@machhub-dev/sdk-ts",
-  "version": "1.2.2",
+  "version": "2.0.0-next.0",
   "description": "MACHHUB TYPESCRIPT SDK",
   "keywords": [
     "machhub",
