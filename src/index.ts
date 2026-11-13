@@ -15,4 +15,4 @@ export type { BridgeQueryOptions, BridgeQueryResult } from "./types/bridge.model
 export { Env } from "./classes/env.js";
 export { Workspace } from "./classes/workspace.js";
 export { Knowledge } from "./classes/knowledge.js";
-export type { AccessLevel, Item, Folder, WorkspaceTree, ItemsQuery, CollectionView, KnowledgeFilter, KnowledgeSearchOptions, KnowledgeHit, KnowledgeResults } from "./types/workspace.models.js";
+export type { AccessLevel, Item, Folder, WorkspaceTree, ItemsQuery, CollectionView, CreateViewInput, UpdateViewInput, CreateFolderInput, UpdateFolderInput, FolderRecord, ItemRecord, Deleted, VersionSummary, Version, RecordHistoryQuery, RecordHistoryEntry, RecordHistoryPage, KnowledgeFilter, KnowledgeSearchOptions, KnowledgeHit, KnowledgeResults } from "./types/workspace.models.js";
