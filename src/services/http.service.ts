@@ -1,3 +1,7 @@
+// User tokens kept in memory where localStorage does not exist (Node.js).
+// Auth writes here, withAccessToken reads here.
+export const memoryTokens: Map<string, string> = new Map();
+
 export class HTTPException extends Error {
     public status: number
     public statusText: string
@@ -147,12 +151,12 @@ class RequestParameters {
     }
 
     public withAccessToken(): RequestParameters {
-        if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') return this;
         const rawAppID = this.applicationID.replace("domains:", "");
         const storageKey = rawAppID
             ? `x-machhub-auth-tkn-${rawAppID}`
             : `x-machhub-auth-tkn`;
-        const tkn = localStorage.getItem(storageKey);
+        const hasStorage = typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function';
+        const tkn = hasStorage ? localStorage.getItem(storageKey) : memoryTokens.get(storageKey);
         if (tkn) this.setHeader("Authorization", `Bearer ${tkn}`);
         return this;
     }

@@ -1,4 +1,4 @@
-import { HTTPService } from "../services/http.service.js";
+import { HTTPService, memoryTokens } from "../services/http.service.js";
 import { jwtDecode } from "jwt-decode";
 import { Action, ActionResponse, ChangePasswordResponse, Feature, Group, LoginResponse, PermissionResponse, ResetPasswordResponse, SuccessResponse, UpdateUserInput, User, ValidateJWTResponse } from "../types/auth.models.js";
 
@@ -7,8 +7,9 @@ export class Auth {
   private applicationID: string;
   private readonly AUTH_TOKEN_KEY_PREFIX = "x-machhub-auth-tkn";
 
-  // In-memory fallback for environments without localStorage (e.g. Node.js)
-  private static memoryStore: Map<string, string> = new Map();
+  // In-memory fallback for environments without localStorage (e.g. Node.js),
+  // shared with HTTPService so later requests carry the token.
+  private static memoryStore: Map<string, string> = memoryTokens;
 
   constructor(httpService: HTTPService, applicationID: string) {
     this.httpService = httpService;
