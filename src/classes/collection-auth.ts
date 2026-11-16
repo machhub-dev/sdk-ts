@@ -134,8 +134,9 @@ export class CollectionAuth {
   }
 
   /**
-   * Sets an app user's password. For a manager of the collection (a MACHHUB
-   * user or a developer key), not for app users; the stored session is untouched.
+   * Sets an app user's password. For a manager of that record: a MACHHUB user,
+   * a developer key, or an app user the collection's `manage` rule passes.
+   * 403 `forbidden` otherwise. The stored session is untouched.
    */
   async setPassword(recordId: string | RecordID, password: string): Promise<void> {
     const id = typeof recordId === "string" ? recordId : RecordIDToString(recordId);
