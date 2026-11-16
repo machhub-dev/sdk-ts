@@ -2,6 +2,35 @@
 // Auth writes here, withAccessToken reads here.
 export const memoryTokens: Map<string, string> = new Map();
 
+// Where the signed-in identity's bearer token is kept. `applicationID` is the
+// bare id or the "domains:" form.
+export function tokenStorageKey(applicationID: string): string {
+    const rawAppID = (applicationID ?? "").replace("domains:", "");
+    return rawAppID ? `x-machhub-auth-tkn-${rawAppID}` : `x-machhub-auth-tkn`;
+}
+
+// Where an app user's session ({collection, record, expires}) is kept, beside
+// the token.
+export function appUserStorageKey(applicationID: string): string {
+    return `${tokenStorageKey(applicationID)}-app-user`;
+}
+
+// Token and session storage: localStorage in a browser, memoryTokens elsewhere.
+export const tokenStorage = {
+    get(key: string): string | null {
+        if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') return localStorage.getItem(key);
+        return memoryTokens.get(key) ?? null;
+    },
+    set(key: string, value: string): void {
+        if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') { localStorage.setItem(key, value); return; }
+        memoryTokens.set(key, value);
+    },
+    remove(key: string): void {
+        if (typeof localStorage !== 'undefined' && typeof localStorage.removeItem === 'function') { localStorage.removeItem(key); return; }
+        memoryTokens.delete(key);
+    },
+};
+
 export class HTTPException extends Error {
     public status: number
     public statusText: string
@@ -31,6 +60,16 @@ export class HTTPService {
         this.applicationID = "domains:" + applicationID
         this.developerKey = developerKey
         this.runtimeID = runtimeID
+    }
+
+    /** Storage key of the bearer token this service attaches to requests. */
+    public get tokenStorageKey(): string {
+        return tokenStorageKey(this.applicationID);
+    }
+
+    /** Storage key of the app-user session kept beside the token. */
+    public get appUserStorageKey(): string {
+        return appUserStorageKey(this.applicationID);
     }
 
     public get request(): RequestParameters {
@@ -151,10 +190,7 @@ class RequestParameters {
     }
 
     public withAccessToken(): RequestParameters {
-        const rawAppID = this.applicationID.replace("domains:", "");
-        const storageKey = rawAppID
-            ? `x-machhub-auth-tkn-${rawAppID}`
-            : `x-machhub-auth-tkn`;
+        const storageKey = tokenStorageKey(this.applicationID);
         const hasStorage = typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function';
         const tkn = hasStorage ? localStorage.getItem(storageKey) : memoryTokens.get(storageKey);
         if (tkn) this.setHeader("Authorization", `Bearer ${tkn}`);

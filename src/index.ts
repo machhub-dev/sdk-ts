@@ -2,7 +2,8 @@ export { SDK, type SDKConfig } from './sdk-ts.js';
 export { Logger, type ProcessLogLevel, type ProcessLogSink } from './classes/logger.js';
 
 // Export individual types
-export type { LoginResponse, PermissionResponse, ValidateJWTResponse, ChangePasswordResponse, User, Group, Feature, Permission, ActionResponse, Action, Scope } from './types/auth.models.js';
+export type { LoginResponse, PermissionResponse, ValidateJWTResponse, ChangePasswordResponse, User, Group, Feature, Permission, ActionResponse, Action, Scope, AppUserAuthResponse, AppUserSession, AppUserAuthErrorCode } from './types/auth.models.js';
+export { CollectionAuth, CollectionAuthError } from './classes/collection-auth.js';
 export type { Operator } from './types/operator.models.js';
 export type { BaseResponse } from './types/response.models.js';
 export type { RecordID } from './types/recordID.models.js';

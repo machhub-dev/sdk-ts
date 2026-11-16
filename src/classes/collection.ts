@@ -1,4 +1,5 @@
 import { HTTPService } from "../services/http.service.js";
+import { CollectionAuth } from "./collection-auth.js";
 import { MQTTService } from "../services/mqtt.service.js";
 import { BasicOperator, Operator } from "../types/operator.models.js";
 import { RecordID, RecordIDToString } from "../types/recordID.models.js";
@@ -30,6 +31,14 @@ export class Collection {
     this.httpService = httpService;
     this.mqttService = mqttService;
     this.collectionName = collectionName;
+  }
+
+  /**
+   * Sign-in for this collection's app users: records of a collection with
+   * sign-in switched on, who sign in with email and password. Needs MACHHUB 2.
+   */
+  get auth(): CollectionAuth {
+    return new CollectionAuth(this.httpService, this.collectionName);
   }
 
 

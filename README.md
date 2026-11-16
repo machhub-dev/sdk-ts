@@ -64,6 +64,28 @@ const user = await sdk.auth.getCurrentUser();
 await sdk.auth.logout();
 ```
 
+#### App users (MACHHUB 2)
+
+A collection with sign-in switched on holds app users, who sign in with email and password. They are not MACHHUB users.
+
+```typescript
+const users = sdk.collection('customers').auth;
+
+await users.signUp('ana@example.com', 'a-password', { name: 'Ana' });
+const { record, expires } = await users.signIn('ana@example.com', 'a-password');
+
+users.current();            // { collection, record, expires }, or null when signed out or expired
+await users.refresh();      // a fresh token before `expires`
+await users.changePassword('a-password', 'a-new-password');
+await users.signOut();            // this SDK instance only
+await users.signOutEverywhere();  // every device
+
+// A manager sets an app user's password
+await users.setPassword('customers:abc', 'a-new-password');
+```
+
+The token is stored where `sdk.auth.login` stores its own and sent on every later request, so an SDK instance holds one signed-in identity: signing in an app user replaces a MACHHUB login, and the reverse. A failed call throws a `CollectionAuthError` with the server's `code` (`invalid_credentials`, `conflict`, `locked`, ...) and HTTP `status`.
+
 ### Collection
 
 Query and manage data collections with a fluent builder API.

@@ -1,4 +1,4 @@
-import { HTTPService, memoryTokens } from "../services/http.service.js";
+import { HTTPService, memoryTokens, appUserStorageKey } from "../services/http.service.js";
 import { jwtDecode } from "jwt-decode";
 import { Action, ActionResponse, ChangePasswordResponse, Feature, Group, LoginResponse, PermissionResponse, ResetPasswordResponse, SuccessResponse, UpdateUserInput, User, ValidateJWTResponse } from "../types/auth.models.js";
 
@@ -45,6 +45,8 @@ export class Auth {
       }).post("/auth/login");
 
       this.storageSet(this.getStorageKey(), res.tkn);
+      // One signed-in identity per SDK: a MACHHUB login replaces an app user's session.
+      this.storageRemove(appUserStorageKey(this.applicationID));
       return res;
     }
     catch (e: unknown) {
@@ -58,6 +60,7 @@ export class Auth {
 
   public async logout() {
     this.storageRemove(this.getStorageKey());
+    this.storageRemove(appUserStorageKey(this.applicationID));
   }
 
   public async getJWTData(): Promise<any> {

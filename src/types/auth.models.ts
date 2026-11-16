@@ -184,3 +184,28 @@ export interface ActionResponse extends BaseResponse {
 
 export type Action = string
 export type Scope = "self" | "domain" | "all" | "nil" | string
+
+/** What sign-up, sign-in, refresh and change-password answer for an app user. */
+export interface AppUserAuthResponse<T = Record<string, any>> {
+    /** Bearer token; the SDK stores it and sends it on later requests. */
+    token: string;
+    /** When the token expires, in unix seconds. */
+    expires: number;
+    /** The app user's record, as `collection(name).getOne` returns it. */
+    record: T;
+}
+
+/** The app-user session the SDK keeps beside the token. */
+export interface AppUserSession<T = Record<string, any>> {
+    /** The collection the app user signed in to. */
+    collection: string;
+    record: T;
+    /** When the session expires, in unix seconds. */
+    expires: number;
+}
+
+/** The server's `error.code` on a failed app-user call. */
+export type AppUserAuthErrorCode =
+    | "bad_request" | "no_sign_in" | "invalid_credentials" | "signed_out"
+    | "sign_up_closed" | "forbidden" | "not_found" | "conflict" | "locked" | "busy"
+    | (string & {});
