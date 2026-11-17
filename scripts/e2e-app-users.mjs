@@ -218,6 +218,11 @@ if (keep) {
 } else {
 	await api('DELETE', `/api/collection/${collectionID}`);
 }
+{
+	const keys = await must('GET', '/api/api-key/');
+	const mine = keys.find((k) => k.name === name);
+	if (mine) await api('DELETE', `/api/api-key/delete/${rid(mine.id)}`);
+}
 sdk.Close?.();
 const failed = results.filter((r) => !r.pass);
 console.log(`\n${results.length - failed.length} passed, ${failed.length} failed`);
