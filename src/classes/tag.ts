@@ -10,6 +10,23 @@ export class Tag {
     this.mqttService = mqttService;
   }
 
+  /** Whether the live-data (MQTT) connection is up now. False before it first connects. */
+  get connected(): boolean {
+    return this.mqttService?.connected ?? false;
+  }
+
+  /**
+   * Calls `listener` with the live-data connection state now and whenever it
+   * changes, so a screen can show comms loss. Returns a function that stops it.
+   */
+  onConnectionChange(listener: (connected: boolean) => void): () => void {
+    if (!this.mqttService) {
+      listener(false);
+      return () => {};
+    }
+    return this.mqttService.onConnectionChange(listener);
+  }
+
   async getAllTags(): Promise<string[]> {
     return this.httpService.request.get("tag/list");
   }
