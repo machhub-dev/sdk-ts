@@ -154,6 +154,21 @@ Search the records and files of collections switched on for Knowledge. Each hit 
 const { hits } = await sdk.knowledge.search('pump pressure limit', { k: 5 });
 ```
 
+### Alarms (MACHHUB 2)
+
+The live list, history, acknowledge and shelve from MACHHUB's ISA-18.2 alarm engine. Rules are configured in MACHHUB. Reading needs the dashboard feature; acknowledging and shelving need it at read-write.
+
+```typescript
+const { alarms } = await sdk.alarms.live({ activeOnly: true });
+
+// Polls the live list and calls back when it changes. Returns a stop function.
+const stop = sdk.alarms.subscribe(snap => render(snap.alarms), { intervalMs: 2000 });
+
+await sdk.alarms.ack(['alarm_rules:pump_101_trip'], 'Checked on site');
+await sdk.alarms.shelve('alarm_rules:tank_2_low', 60, 'Sensor replacement');
+const { items } = await sdk.alarms.occurrences({ openOnly: true, priorities: ['high', 'critical'] });
+```
+
 ### Closing
 
 A Node script or test calls `sdk.Close()` when done, or the MQTT connection keeps the process running.
