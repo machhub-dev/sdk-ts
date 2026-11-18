@@ -98,6 +98,13 @@ await sdk.tag.publish('my/topic', { value: 42 });
 await sdk.tag.unsubscribe('my/topic');
 ```
 
+Watch the live-data connection, for example to grey out a screen on comms loss:
+
+```typescript
+const stop = sdk.tag.onConnectionChange(up => banner.hidden = up);
+console.log(sdk.tag.connected);
+```
+
 ### Historian
 
 Access historical tag data.

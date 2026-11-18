@@ -10,6 +10,8 @@ export class MQTTService {
     public client!: mqtt.MqttClient;
     private static instance: MQTTService | undefined;
     private subscribedTopics: SubscribedTopic[] = [];
+    private connectionListeners = new Set<(connected: boolean) => void>();
+    private _connected = false;
 
     constructor(url: string) {
         this.url = url;
@@ -120,10 +122,39 @@ export class MQTTService {
         return true;
     }
 
+    /** Whether the broker connection is up now. */
+    public get connected(): boolean {
+        return this._connected;
+    }
+
+    /**
+     * Calls `listener` with the connection state now and on every change.
+     * Returns a function that removes it.
+     */
+    public onConnectionChange(listener: (connected: boolean) => void): () => void {
+        this.connectionListeners.add(listener);
+        listener(this._connected);
+        return () => {
+            this.connectionListeners.delete(listener);
+        };
+    }
+
+    private setConnected(connected: boolean): void {
+        if (connected === this._connected) return;
+        this._connected = connected;
+        for (const listener of this.connectionListeners) {
+            try {
+                listener(connected);
+            } catch (error) {
+                console.error("MQTT connection listener failed:", error);
+            }
+        }
+    }
+
     private attachMessageListener(): void {
-        this.client.on('connect', () => {
-            // console.log("MQTT connected to", this.url);
-        });
+        this.client.on('connect', () => this.setConnected(true));
+        this.client.on('close', () => this.setConnected(false));
+        this.client.on('offline', () => this.setConnected(false));
 
         this.client.on('error', (error: Error) => {
             console.error("MQTT connection error:", error);
