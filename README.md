@@ -98,6 +98,16 @@ await sdk.tag.publish('my/topic', { value: 42 });
 await sdk.tag.unsubscribe('my/topic');
 ```
 
+A value an adapter read carries its quality as a third argument (`good`, `uncertain` or `bad`, with the device timestamp when known):
+
+```typescript
+await sdk.tag.subscribe('Plant/Pump101/Speed', (value, topic, meta) => {
+  if (meta?.quality === 'bad') showBad();
+});
+```
+
+Which points of a data source are failing is on the retained topic `_MACHHUB/datasources/health/<workspace key>/<source id>`.
+
 Watch the live-data connection, for example to grey out a screen on comms loss:
 
 ```typescript

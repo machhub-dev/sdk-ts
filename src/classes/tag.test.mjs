@@ -45,3 +45,24 @@ test('without an MQTT service the state is down', () => {
 	assert.deepEqual(seen, [false]);
 	assert.equal(tag.connected, false);
 });
+
+test('a subscriber gets the quality MACHHUB sends as user properties', () => {
+	const service = serviceWithFakeClient();
+	service.client.subscribe = () => {};
+	const tag = new Tag(null, service);
+	const got = [];
+	tag.subscribe('Plant/Pump/Speed', (value, topic, meta) => got.push({ value, topic, meta }));
+
+	service.client.emit('message', 'Plant/Pump/Speed', Buffer.from('41.5'), {
+		retain: true,
+		properties: { userProperties: { 'mh-q': 'uncertain', 'mh-src-ts': '2026-11-18T10:00:00Z', 'mh-status': '1073741824' } }
+	});
+	service.client.emit('message', 'Plant/Pump/Speed', Buffer.from('42'), { retain: false });
+	service.client.emit('message', 'Plant/Pump/Speed', Buffer.from('43'), { properties: { userProperties: { 'mh-q': 'weird', 'mh-status': '0' } } });
+
+	assert.deepEqual(got, [
+		{ value: 41.5, topic: 'Plant/Pump/Speed', meta: { retained: true, quality: 'uncertain', sourceTime: '2026-11-18T10:00:00Z', status: 1073741824 } },
+		{ value: 42, topic: 'Plant/Pump/Speed', meta: { retained: false } },
+		{ value: 43, topic: 'Plant/Pump/Speed', meta: { retained: false } }
+	]);
+});

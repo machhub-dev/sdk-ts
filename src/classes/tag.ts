@@ -1,5 +1,6 @@
 import { HTTPService } from "../services/http.service.js";
 import { MQTTService } from "../services/mqtt.service.js";
+import type { TagMessageMeta } from "../types/tag.models.js";
 
 export class Tag {
   private httpService: HTTPService;
@@ -38,7 +39,12 @@ export class Tag {
     this.mqttService.publish(topic, data, retain);
   }
 
-  async subscribe(topic: string, callback: (data: any, topic?: string) => void): Promise<void> {
+  /**
+   * Calls `callback` with each value on `topic` (`+` and `#` allowed). The
+   * third argument is what MACHHUB says about the value: its quality and the
+   * device's timestamp, when an adapter read it.
+   */
+  async subscribe(topic: string, callback: (data: any, topic?: string, meta?: TagMessageMeta) => void): Promise<void> {
     if (!this.mqttService) {
       throw new Error("MQTT service not connected");
     }
