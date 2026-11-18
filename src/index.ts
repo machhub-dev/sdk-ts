@@ -8,7 +8,7 @@ export type { Operator } from './types/operator.models.js';
 export type { BaseResponse } from './types/response.models.js';
 export type { RecordID } from './types/recordID.models.js';
 export { StringToRecordID, RecordIDToString, emptyRecordID } from './types/recordID.models.js';
-export type { HistorizedData } from './types/tag.models.js';
+export type { HistorizedData, TagQuality, TagMessageMeta } from './types/tag.models.js';
 export type { AggregationOption } from './classes/historian.js';
 export type { Process, ProcessLanguage, ProcessTrigger, TriggerType, TriggerConfig, ProcessInput, InputType, InputConfig, ProcessOutput, OutputType, OutputConfig, ProcessKey, ProcessValue } from './types/processes.models.js';
 export { Bridge, BridgeQueryError } from "./classes/bridge.js";
