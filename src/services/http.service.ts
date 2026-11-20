@@ -1,3 +1,4 @@
+import { unescapeRecordIDPart } from "../types/recordID.models.js";
 // User tokens kept in memory where localStorage does not exist (Node.js).
 // Auth writes here, withAccessToken reads here.
 export const memoryTokens: Map<string, string> = new Map();
@@ -5,7 +6,7 @@ export const memoryTokens: Map<string, string> = new Map();
 // Where the signed-in identity's bearer token is kept. `applicationID` is the
 // bare id or the "domains:" form.
 export function tokenStorageKey(applicationID: string): string {
-    const rawAppID = (applicationID ?? "").replace("domains:", "");
+    const rawAppID = unescapeRecordIDPart((applicationID ?? "").replace("domains:", ""));
     return rawAppID ? `x-machhub-auth-tkn-${rawAppID}` : `x-machhub-auth-tkn`;
 }
 
