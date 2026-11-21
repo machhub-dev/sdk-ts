@@ -10,6 +10,7 @@ import { Processes } from "./classes/processes.js";
 import { Logger, type ProcessLogSink } from "./classes/logger.js";
 import { Workspace } from "./classes/workspace.js";
 import { Knowledge } from "./classes/knowledge.js";
+import { Alarms } from "./classes/alarms.js";
 
 const MACHHUB_SDK_PATH = "machhub";
 
@@ -108,6 +109,7 @@ export class SDK {
   private _processes: Processes | null = null;
   private _workspace: Workspace | null = null;
   private _knowledge: Knowledge | null = null;
+  private _alarms: Alarms | null = null;
   // Constructed eagerly, unlike the services above: `log` needs no HTTP or MQTT
   // client, so it must work before (and without) Initialize.
   private _log: Logger = new Logger();
@@ -207,6 +209,7 @@ export class SDK {
       this._processes = new Processes(this.http["httpService"]);
       this._workspace = new Workspace(this.http["httpService"]);
       this._knowledge = new Knowledge(this.http["httpService"]);
+      this._alarms = new Alarms(this.http["httpService"]);
     } catch (error: any) {
       console.error("Failed to initialize:", error);
       return false;
@@ -276,6 +279,17 @@ export class SDK {
       throw new Error("SDK is not initialized. Call `Initialize` before accessing `knowledge`.");
     }
     return this._knowledge;
+  }
+
+  /**
+   * The Workspace's alarms from MACHHUB's alarm engine: live list, history,
+   * acknowledge and shelve.
+   */
+  public get alarms(): Alarms {
+    if (!this._alarms) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing `alarms`.");
+    }
+    return this._alarms;
   }
 
   public get processes(): Processes {

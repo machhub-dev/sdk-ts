@@ -120,6 +120,23 @@ await sdk.tag.publish('my/topic', { value: 42 });
 await sdk.tag.unsubscribe('my/topic');
 ```
 
+A value an adapter read carries its quality as a third argument (`good`, `uncertain` or `bad`, with the device timestamp when known):
+
+```typescript
+await sdk.tag.subscribe('Plant/Pump101/Speed', (value, topic, meta) => {
+  if (meta?.quality === 'bad') showBad();
+});
+```
+
+Which points of a data source are failing is on the retained topic `_MACHHUB/datasources/health/<workspace key>/<source id>`.
+
+Watch the live-data connection, for example to grey out a screen on comms loss:
+
+```typescript
+const stop = sdk.tag.onConnectionChange(up => banner.hidden = up);
+console.log(sdk.tag.connected);
+```
+
 ### Historian
 
 Access historical tag data.
@@ -174,6 +191,21 @@ Search the records and files of collections switched on for Knowledge. Each hit 
 
 ```typescript
 const { hits } = await sdk.knowledge.search('pump pressure limit', { k: 5 });
+```
+
+### Alarms (MACHHUB 2)
+
+The live list, history, acknowledge and shelve from MACHHUB's ISA-18.2 alarm engine. Rules are configured in MACHHUB. Reading needs the dashboard feature; acknowledging and shelving need it at read-write.
+
+```typescript
+const { alarms } = await sdk.alarms.live({ activeOnly: true });
+
+// Polls the live list and calls back when it changes. Returns a stop function.
+const stop = sdk.alarms.subscribe(snap => render(snap.alarms), { intervalMs: 2000 });
+
+await sdk.alarms.ack(['alarm_rules:pump_101_trip'], 'Checked on site');
+await sdk.alarms.shelve('alarm_rules:tank_2_low', 60, 'Sensor replacement');
+const { items } = await sdk.alarms.occurrences({ openOnly: true, priorities: ['high', 'critical'] });
 ```
 
 ### Closing

@@ -1,8 +1,9 @@
 import mqtt from 'mqtt';
+import type { TagMessageMeta, TagQuality } from '../types/tag.models.js';
 
 interface SubscribedTopic {
     topic: string;
-    handler: (message: unknown, topic?: string) => void;
+    handler: (message: unknown, topic?: string, meta?: TagMessageMeta) => void;
 }
 
 export class MQTTService {
@@ -10,6 +11,8 @@ export class MQTTService {
     public client!: mqtt.MqttClient;
     private static instance: MQTTService | undefined;
     private subscribedTopics: SubscribedTopic[] = [];
+    private connectionListeners = new Set<(connected: boolean) => void>();
+    private _connected = false;
 
     constructor(url: string) {
         this.url = url;
@@ -46,7 +49,7 @@ export class MQTTService {
     }
 
     // addTopicHandler Adds a topic and handler to the subscribed list
-    public addTopicHandler(topic: string, handler: (message: unknown, topic?: string) => void): void {
+    public addTopicHandler(topic: string, handler: (message: unknown, topic?: string, meta?: TagMessageMeta) => void): void {
         try {
             // Check if already subscribed to this topic
             const existingSubscription = this.subscribedTopics.find(sub => sub.topic === topic);
@@ -120,20 +123,49 @@ export class MQTTService {
         return true;
     }
 
+    /** Whether the broker connection is up now. */
+    public get connected(): boolean {
+        return this._connected;
+    }
+
+    /**
+     * Calls `listener` with the connection state now and on every change.
+     * Returns a function that removes it.
+     */
+    public onConnectionChange(listener: (connected: boolean) => void): () => void {
+        this.connectionListeners.add(listener);
+        listener(this._connected);
+        return () => {
+            this.connectionListeners.delete(listener);
+        };
+    }
+
+    private setConnected(connected: boolean): void {
+        if (connected === this._connected) return;
+        this._connected = connected;
+        for (const listener of this.connectionListeners) {
+            try {
+                listener(connected);
+            } catch (error) {
+                console.error("MQTT connection listener failed:", error);
+            }
+        }
+    }
+
     private attachMessageListener(): void {
-        this.client.on('connect', () => {
-            // console.log("MQTT connected to", this.url);
-        });
+        this.client.on('connect', () => this.setConnected(true));
+        this.client.on('close', () => this.setConnected(false));
+        this.client.on('offline', () => this.setConnected(false));
 
         this.client.on('error', (error: Error) => {
             console.error("MQTT connection error:", error);
         });
 
-        this.client.on('message', (topic: string, message: Buffer) => {
+        this.client.on('message', (topic: string, message: Buffer, packet?: mqtt.IPublishPacket) => {
             for (const subscribedTopic of this.subscribedTopics) {
                 if (this.matchesTopic(subscribedTopic.topic, topic)) {
                     const parsedMessage = this.parseMessage(message, topic);
-                    subscribedTopic.handler(parsedMessage, topic);
+                    subscribedTopic.handler(parsedMessage, topic, messageMeta(packet));
                     break;
                 }
             }
@@ -185,4 +217,24 @@ export class MQTTService {
             return message.toString();
         }
     }
+}
+
+const QUALITIES: readonly string[] = ["good", "uncertain", "bad"];
+
+function firstProp(value: string | string[] | undefined): string | undefined {
+    return Array.isArray(value) ? value[0] : value;
+}
+
+/** Reads the quality MACHHUB sends as MQTT 5 user properties (see TagMessageMeta). */
+export function messageMeta(packet?: mqtt.IPublishPacket): TagMessageMeta {
+    const meta: TagMessageMeta = { retained: packet?.retain === true };
+    const props = packet?.properties?.userProperties as Record<string, string | string[]> | undefined;
+    if (!props) return meta;
+    const q = firstProp(props["mh-q"]);
+    if (q && QUALITIES.includes(q)) meta.quality = q as TagQuality;
+    const ts = firstProp(props["mh-src-ts"]);
+    if (ts) meta.sourceTime = ts;
+    const status = Number(firstProp(props["mh-status"]));
+    if (Number.isFinite(status) && status !== 0) meta.status = status;
+    return meta;
 }
