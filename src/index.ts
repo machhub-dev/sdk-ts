@@ -16,3 +16,5 @@ export { Env } from "./classes/env.js";
 export { Workspace } from "./classes/workspace.js";
 export { Knowledge } from "./classes/knowledge.js";
 export type { AccessLevel, Item, Folder, WorkspaceTree, ItemsQuery, CollectionView, KnowledgeFilter, KnowledgeSearchOptions, KnowledgeHit, KnowledgeResults } from "./types/workspace.models.js";
+export { Assistant, AssistantChat, AssistantMessages } from "./classes/assistant.js";
+export type { AssistantAnswer, AssistantAskOptions, AssistantChatOptions, AssistantCitation, AssistantClientTool, AssistantConfirmRequest, AssistantError, AssistantEvents, AssistantTurn } from "./types/assistant.models.js";

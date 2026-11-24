@@ -10,6 +10,7 @@ import { Processes } from "./classes/processes.js";
 import { Logger, type ProcessLogSink } from "./classes/logger.js";
 import { Workspace } from "./classes/workspace.js";
 import { Knowledge } from "./classes/knowledge.js";
+import { Assistant } from "./classes/assistant.js";
 
 const MACHHUB_SDK_PATH = "machhub";
 
@@ -108,6 +109,7 @@ export class SDK {
   private _processes: Processes | null = null;
   private _workspace: Workspace | null = null;
   private _knowledge: Knowledge | null = null;
+  private _assistant: Assistant | null = null;
   // Constructed eagerly, unlike the services above: `log` needs no HTTP or MQTT
   // client, so it must work before (and without) Initialize.
   private _log: Logger = new Logger();
@@ -207,6 +209,7 @@ export class SDK {
       this._processes = new Processes(this.http["httpService"]);
       this._workspace = new Workspace(this.http["httpService"]);
       this._knowledge = new Knowledge(this.http["httpService"]);
+      this._assistant = new Assistant(this.http["httpService"]);
     } catch (error: any) {
       console.error("Failed to initialize:", error);
       return false;
@@ -276,6 +279,18 @@ export class SDK {
       throw new Error("SDK is not initialized. Call `Initialize` before accessing `knowledge`.");
     }
     return this._knowledge;
+  }
+
+  /**
+   * The app's own assistant (MACHHUB 2, app agents): `sdk.assistant.chat()`
+   * talks to the agent built from this app's machhub.app.json, as the
+   * signed-in operator. Changes wait for the operator's confirm.
+   */
+  public get assistant(): Assistant {
+    if (!this._assistant) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing `assistant`.");
+    }
+    return this._assistant;
   }
 
   public get processes(): Processes {

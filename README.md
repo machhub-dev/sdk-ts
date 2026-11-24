@@ -154,6 +154,27 @@ Search the records and files of collections switched on for Knowledge. Each hit 
 const { hits } = await sdk.knowledge.search('pump pressure limit', { k: 5 });
 ```
 
+### Assistant (MACHHUB 2)
+
+A hosted app's own AI chat. It talks to the agent built from the app's `machhub.app.json`, as the signed-in operator, so it can do only what both may do. A change waits for the operator to confirm the server's sentence.
+
+```typescript
+const chat = sdk.assistant.chat();
+chat.on('delta', (text) => appendToBubble(text));
+chat.on('status', (s) => showStatus(s));
+chat.on('confirm', async (req) => {
+  const ok = req.canConfirm && (await showConfirmCard(req.text, req.expires));
+  ok ? await req.confirm() : await req.decline();
+});
+chat.handle('highlight_line', async ({ line }) => ({ highlighted: line }));
+
+const answer = await chat.ask('What was L3 scrap last shift?');
+chat.stop();   // cancels the answer in flight
+chat.close();
+```
+
+It needs a hosted app, an approved agent, and an operator holding "App assistant". A kiosk login (a group marked shared login) may ask but never confirm. `history()` returns this chat's turns.
+
 ### Closing
 
 A Node script or test calls `sdk.Close()` when done, or the MQTT connection keeps the process running.
