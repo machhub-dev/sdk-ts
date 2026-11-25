@@ -19,3 +19,5 @@ export { Knowledge } from "./classes/knowledge.js";
 export type { AccessLevel, Item, Folder, WorkspaceTree, ItemsQuery, CollectionView, CreateViewInput, UpdateViewInput, CreateFolderInput, UpdateFolderInput, FolderRecord, ItemRecord, Deleted, VersionSummary, Version, RecordHistoryQuery, RecordHistoryEntry, RecordHistoryPage, KnowledgeFilter, KnowledgeSearchOptions, KnowledgeHit, KnowledgeResults } from "./types/workspace.models.js";
 export { Alarms } from "./classes/alarms.js";
 export type { AlarmPriority, AlarmStateName, AlarmEventType, AlarmRule, AlarmState, AlarmLive, AlarmLiveSnapshot, AlarmOccurrence, AlarmEvent, AlarmPage, AlarmHistoryQuery, AlarmActionResult, AlarmSubscribeOptions } from "./types/alarm.models.js";
+export { Chat, ChatMessages } from "./classes/chat.js";
+export type { ChatAnswer, ChatAskOptions, ChatOptions, ChatCitation, ChatClientTool, ChatConfirmRequest, ChatError, ChatEvents, ChatTurn } from "./types/chat.models.js";

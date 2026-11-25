@@ -11,6 +11,8 @@ import { Logger, type ProcessLogSink } from "./classes/logger.js";
 import { Workspace } from "./classes/workspace.js";
 import { Knowledge } from "./classes/knowledge.js";
 import { Alarms } from "./classes/alarms.js";
+import { Chat } from "./classes/chat.js";
+import type { ChatOptions } from "./types/chat.models.js";
 
 const MACHHUB_SDK_PATH = "machhub";
 
@@ -290,6 +292,25 @@ export class SDK {
       throw new Error("SDK is not initialized. Call `Initialize` before accessing `alarms`.");
     }
     return this._alarms;
+  }
+
+  /**
+   * Opens the hosted app's own AI chat (MACHHUB 2, app agents) with the agent
+   * built from this app's machhub.app.json, as the signed-in operator.
+   * Changes wait for the operator's confirm. Nothing connects until the
+   * first `ask`.
+   *
+   * @example
+   * ```typescript
+   * const chat = sdk.chat();
+   * const answer = await chat.ask('What was L3 scrap last shift?');
+   * ```
+   */
+  public chat(options: ChatOptions = {}): Chat {
+    if (!this.http) {
+      throw new Error("SDK is not initialized. Call `Initialize` before accessing chat.");
+    }
+    return new Chat(this.http["httpService"], options);
   }
 
   public get processes(): Processes {
