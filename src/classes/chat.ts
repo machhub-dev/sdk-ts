@@ -1,50 +1,29 @@
 import { HTTPException, HTTPService } from "../services/http.service.js";
 import type {
-  AssistantAnswer,
-  AssistantAskOptions,
-  AssistantChatOptions,
-  AssistantClientTool,
-  AssistantConfirmRequest,
-  AssistantError,
-  AssistantEvents,
-  AssistantTurn,
-} from "../types/assistant.models.js";
+  ChatAnswer,
+  ChatAskOptions,
+  ChatOptions,
+  ChatClientTool,
+  ChatConfirmRequest,
+  ChatError,
+  ChatEvents,
+  ChatTurn,
+} from "../types/chat.models.js";
 
 /** The one-line refusals the server gives, for an app to show as they are. */
-export const AssistantMessages = {
-  notReady: "This app's assistant isn't set up yet. Ask your admin.",
-  budget: "The assistant is out of budget for today. Ask your supervisor.",
+export const ChatMessages = {
+  notReady: "This app's chat isn't set up yet. Ask your admin.",
+  budget: "Chat is out of budget for today. Ask your supervisor.",
   sharedLogin: "Sign in with your own account to confirm this.",
 } as const;
 
 const KEEPALIVE_MS = 5 * 60 * 1000;
 
-/**
- * The app's own assistant (MACHHUB 2, app agents): a chat with the agent
- * built from this app's machhub.app.json, acting as the signed-in operator.
- * It can do only what both the agent and the operator may do; a change waits
- * for the operator to confirm the server's sentence.
- *
- * Needs a hosted app with a signed-in operator who holds "app assistant".
- */
-export class Assistant {
-  private httpService: HTTPService;
-
-  constructor(httpService: HTTPService) {
-    this.httpService = httpService;
-  }
-
-  /** Opens a chat with this app's agent. Nothing connects until the first ask. */
-  chat(options: AssistantChatOptions = {}): AssistantChat {
-    return new AssistantChat(this.httpService, options);
-  }
-}
-
 type Listener = (...args: any[]) => void;
 
 interface PendingTurn {
-  turn: AssistantTurn;
-  resolve: (a: AssistantAnswer) => void;
+  turn: ChatTurn;
+  resolve: (a: ChatAnswer) => void;
   reject: (e: Error & { code?: string }) => void;
 }
 
@@ -53,8 +32,17 @@ interface PendingDecision {
   reject: (e: Error) => void;
 }
 
-/** One chat. Ask one question at a time. */
-export class AssistantChat {
+/**
+ * A hosted app's own AI chat (MACHHUB 2, app agents), opened with
+ * `sdk.chat()`. It talks to the agent built from this app's
+ * machhub.app.json, as the signed-in operator, so it can do only what both
+ * the agent and the operator may do; a change waits for the operator to
+ * confirm the server's sentence. Ask one question at a time; nothing
+ * connects until the first ask.
+ *
+ * Needs a hosted app with a signed-in operator who holds "app assistant".
+ */
+export class Chat {
   private httpService: HTTPService;
   private WS: any;
   private session?: string;
@@ -62,20 +50,20 @@ export class AssistantChat {
   private opening: Promise<void> | null = null;
   private keepalive: ReturnType<typeof setInterval> | null = null;
   private listeners = new Map<string, Set<Listener>>();
-  private tools = new Map<string, AssistantClientTool>();
+  private tools = new Map<string, ChatClientTool>();
   private current: PendingTurn | null = null;
   private decisions = new Map<string, PendingDecision>();
-  private turns: AssistantTurn[] = [];
+  private turns: ChatTurn[] = [];
   private closed = false;
 
-  constructor(httpService: HTTPService, options: AssistantChatOptions = {}) {
+  constructor(httpService: HTTPService, options: ChatOptions = {}) {
     this.httpService = httpService;
     this.session = options.session;
     this.WS = options.WebSocket ?? (globalThis as any).WebSocket;
   }
 
   /** Listens for an event; returns a function that stops listening. */
-  on<E extends keyof AssistantEvents>(event: E, listener: AssistantEvents[E]): () => void {
+  on<E extends keyof ChatEvents>(event: E, listener: ChatEvents[E]): () => void {
     let set = this.listeners.get(event);
     if (!set) this.listeners.set(event, (set = new Set()));
     set.add(listener as Listener);
@@ -86,7 +74,7 @@ export class AssistantChat {
    * Runs a client tool the manifest lists, when the model asks for it. What
    * it returns goes back to the model; a throw goes back as an error.
    */
-  handle(name: string, tool: AssistantClientTool): void {
+  handle(name: string, tool: ChatClientTool): void {
     this.tools.set(name, tool);
   }
 
@@ -96,14 +84,14 @@ export class AssistantChat {
   }
 
   /** Asks a question; resolves with the answer, rejects with a one-line error. */
-  async ask(question: string, options: AssistantAskOptions = {}): Promise<AssistantAnswer> {
+  async ask(question: string, options: ChatAskOptions = {}): Promise<ChatAnswer> {
     if (this.closed) throw new Error("This chat is closed.");
     if (!question.trim()) throw new Error("Ask a question.");
     if (this.current) throw Object.assign(new Error("Wait for this answer first."), { code: "busy" });
     await this.open();
-    const turn: AssistantTurn = { question, at: new Date() };
+    const turn: ChatTurn = { question, at: new Date() };
     this.turns.push(turn);
-    return new Promise<AssistantAnswer>((resolve, reject) => {
+    return new Promise<ChatAnswer>((resolve, reject) => {
       this.current = { turn, resolve, reject };
       this.send({ question, sources: options.sources, page: options.page });
     });
@@ -115,7 +103,7 @@ export class AssistantChat {
   }
 
   /** The questions and answers of this chat, oldest first. */
-  async history(): Promise<AssistantTurn[]> {
+  async history(): Promise<ChatTurn[]> {
     return this.turns.map((t) => ({ ...t }));
   }
 
@@ -165,12 +153,12 @@ export class AssistantChat {
       };
       ws.onmessage = (ev: any) => this.receive(typeof ev.data === "string" ? ev.data : String(ev.data));
       ws.onerror = () => {
-        if (!opened) reject(Object.assign(new Error("The assistant could not be reached."), { code: "socket" }));
+        if (!opened) reject(Object.assign(new Error("The chat could not be reached."), { code: "socket" }));
       };
       ws.onclose = (ev: any) => {
         if (!opened) {
           const code = ev?.code === 4409 ? "not_ready" : "socket";
-          reject(Object.assign(new Error(code === "not_ready" ? AssistantMessages.notReady : "The assistant could not be reached."), { code }));
+          reject(Object.assign(new Error(code === "not_ready" ? ChatMessages.notReady : "The chat could not be reached."), { code }));
           return;
         }
         if (this.socket === ws) this.socket = null;
@@ -188,7 +176,7 @@ export class AssistantChat {
       try {
         fn(...args);
       } catch (e) {
-        console.error("(Assistant) A listener threw:", e);
+        console.error("(Chat) A listener threw:", e);
       }
     }
   }
@@ -208,7 +196,7 @@ export class AssistantChat {
         this.emit("status", m.text ?? "");
         break;
       case "answer": {
-        const answer: AssistantAnswer = {
+        const answer: ChatAnswer = {
           text: m.text ?? "",
           citations: m.citations ?? [],
           traceId: m.trace_id,
@@ -229,7 +217,7 @@ export class AssistantChat {
         });
         break;
       case "error": {
-        const error: AssistantError = { message: m.text ?? "Something went wrong.", code: m.code };
+        const error: ChatError = { message: m.text ?? "Something went wrong.", code: m.code };
         this.emit("error", error);
         if (error.code === "busy") break; // the question in flight goes on
         this.finish((t) => {
@@ -259,7 +247,7 @@ export class AssistantChat {
     if (t) fn(t);
   }
 
-  private confirmRequest(m: any): AssistantConfirmRequest {
+  private confirmRequest(m: any): ChatConfirmRequest {
     const actionId: string = m.action_id;
     const decide = (type: "confirm" | "decline") =>
       new Promise<void>((resolve, reject) => {
@@ -308,7 +296,7 @@ export class AssistantChat {
     for (const [, d] of this.decisions) d.reject(new Error("The chat closed; nothing was changed."));
     this.decisions.clear();
     this.finish((t) => {
-      const error: AssistantError = { message: "The chat closed before the answer came.", code: "socket" };
+      const error: ChatError = { message: "The chat closed before the answer came.", code: "socket" };
       t.turn.error = error;
       t.reject(Object.assign(new Error(error.message), { code: error.code }));
     });
@@ -341,8 +329,8 @@ function refusal(e: unknown): Error & { code?: string } {
     } catch {
       /* not JSON */
     }
-    if (e.status === 409) return Object.assign(new Error(AssistantMessages.notReady), { code: "not_ready" });
-    if (e.status === 401) return Object.assign(new Error("Sign in to use the assistant."), { code: "sign_in" });
+    if (e.status === 409) return Object.assign(new Error(ChatMessages.notReady), { code: "not_ready" });
+    if (e.status === 401) return Object.assign(new Error("Sign in to use the chat."), { code: "sign_in" });
   }
-  return Object.assign(new Error("The assistant could not be reached."), { code: "socket" });
+  return Object.assign(new Error("The chat could not be reached."), { code: "socket" });
 }

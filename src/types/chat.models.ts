@@ -1,5 +1,5 @@
 /** A source the answer drew on, as the server's provenance gives it. */
-export interface AssistantCitation {
+export interface ChatCitation {
   verb?: string;
   row_count?: number;
   note?: string;
@@ -7,15 +7,15 @@ export interface AssistantCitation {
 }
 
 /** A finished answer. */
-export interface AssistantAnswer {
+export interface ChatAnswer {
   text: string;
-  citations: AssistantCitation[];
+  citations: ChatCitation[];
   traceId?: string;
   toolCalls?: number;
 }
 
 /** A refusal or failure, one line for the operator. */
-export interface AssistantError {
+export interface ChatError {
   message: string;
   /** "not_ready", "budget", "sign_in", "no_access", "busy", "confirm", "socket" or another server code. */
   code?: string;
@@ -25,7 +25,7 @@ export interface AssistantError {
  * The server asks the operator to confirm a change. The sentence is the
  * server's, filled from the Process's confirm text: show it as it is.
  */
-export interface AssistantConfirmRequest {
+export interface ChatConfirmRequest {
   actionId: string;
   /** The tool's title, e.g. "Start changeover". */
   tool: string;
@@ -42,16 +42,16 @@ export interface AssistantConfirmRequest {
 }
 
 /** A tool the app runs itself, in the operator's screen. */
-export type AssistantClientTool = (args: Record<string, any>) => unknown | Promise<unknown>;
+export type ChatClientTool = (args: Record<string, any>) => unknown | Promise<unknown>;
 
-export interface AssistantAskOptions {
+export interface ChatAskOptions {
   /** Knowledge sources to narrow to; only the agent's own are used. */
   sources?: string[];
   /** The page the operator is on, for context. */
   page?: string;
 }
 
-export interface AssistantChatOptions {
+export interface ChatOptions {
   /** Reuse a chat session id to continue it. */
   session?: string;
   /** A WebSocket constructor, where there is no global one. */
@@ -59,20 +59,20 @@ export interface AssistantChatOptions {
 }
 
 /** One question and what came back, in this chat. */
-export interface AssistantTurn {
+export interface ChatTurn {
   question: string;
-  answer?: AssistantAnswer;
-  error?: AssistantError;
+  answer?: ChatAnswer;
+  error?: ChatError;
   stopped?: boolean;
   at: Date;
 }
 
-export interface AssistantEvents {
+export interface ChatEvents {
   delta: (text: string) => void;
   status: (status: string) => void;
-  answer: (answer: AssistantAnswer) => void;
-  error: (error: AssistantError) => void;
+  answer: (answer: ChatAnswer) => void;
+  error: (error: ChatError) => void;
   stopped: () => void;
-  confirm: (request: AssistantConfirmRequest) => void;
+  confirm: (request: ChatConfirmRequest) => void;
   close: () => void;
 }

@@ -154,12 +154,12 @@ Search the records and files of collections switched on for Knowledge. Each hit 
 const { hits } = await sdk.knowledge.search('pump pressure limit', { k: 5 });
 ```
 
-### Assistant (MACHHUB 2)
+### Chat (MACHHUB 2)
 
 A hosted app's own AI chat. It talks to the agent built from the app's `machhub.app.json`, as the signed-in operator, so it can do only what both may do. A change waits for the operator to confirm the server's sentence.
 
 ```typescript
-const chat = sdk.assistant.chat();
+const chat = sdk.chat();
 chat.on('delta', (text) => appendToBubble(text));
 chat.on('status', (s) => showStatus(s));
 chat.on('confirm', async (req) => {
