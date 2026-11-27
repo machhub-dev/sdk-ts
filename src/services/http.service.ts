@@ -1,4 +1,5 @@
 import { unescapeRecordIDPart } from "../types/recordID.models.js";
+import { CLIENT_HEADER_NAME, CLIENT_HEADER_VALUE } from "../version.js";
 // User tokens kept in memory where localStorage does not exist (Node.js).
 // Auth writes here, withAccessToken reads here.
 export const memoryTokens: Map<string, string> = new Map();
@@ -97,6 +98,7 @@ class RequestParameters {
         this.withAccessToken(); // Ensure withAccessToken() is called by default
         this.withDeveloperKey(); // Ensure withDeveloperKey() is called by default
         this.withRuntimeID(); // Ensure withRuntimeID() is called by default
+        this.withClient(); // Identify SDK name and version
     }
 
     private withQuery(path: string, query?: Record<string, string>): URL {
@@ -177,9 +179,7 @@ class RequestParameters {
 
     public setHeader(key: string, value: string): RequestParameters {
         if (this.headers == null) {
-            this.headers = {
-                key: value
-            }
+            this.headers = {};
         }
         this.headers[key] = value;
         return this;
@@ -211,6 +211,11 @@ class RequestParameters {
     public withDeveloperKey(): RequestParameters {
         if (!this.developerKey) return this;
         this.setHeader("X-Machhub-Api-Key", this.developerKey);
+        return this;
+    }
+
+    public withClient(): RequestParameters {
+        this.setHeader(CLIENT_HEADER_NAME, CLIENT_HEADER_VALUE);
         return this;
     }
 

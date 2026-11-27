@@ -21,3 +21,5 @@ export { Alarms } from "./classes/alarms.js";
 export type { AlarmPriority, AlarmStateName, AlarmEventType, AlarmRule, AlarmState, AlarmLive, AlarmLiveSnapshot, AlarmOccurrence, AlarmEvent, AlarmPage, AlarmHistoryQuery, AlarmActionResult, AlarmSubscribeOptions } from "./types/alarm.models.js";
 export { Chat, ChatMessages } from "./classes/chat.js";
 export type { ChatAnswer, ChatAskOptions, ChatOptions, ChatCitation, ChatClientTool, ChatConfirmRequest, ChatError, ChatEvents, ChatTurn } from "./types/chat.models.js";
+export { Server, type ServerInfo } from "./classes/server.js";
+export { SDK_VERSION, CLIENT_HEADER_NAME, CLIENT_HEADER_VALUE } from "./version.js";
