@@ -15,4 +15,6 @@ export type { BridgeQueryOptions, BridgeQueryResult } from "./types/bridge.model
 export { Env } from "./classes/env.js";
 export { Workspace } from "./classes/workspace.js";
 export { Knowledge } from "./classes/knowledge.js";
+export { Server, type ServerInfo } from "./classes/server.js";
+export { SDK_VERSION, CLIENT_HEADER_NAME, CLIENT_HEADER_VALUE } from "./version.js";
 export type { AccessLevel, Item, Folder, WorkspaceTree, ItemsQuery, CollectionView, KnowledgeFilter, KnowledgeSearchOptions, KnowledgeHit, KnowledgeResults } from "./types/workspace.models.js";
